@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react'; // Importing icons for show/hide password
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ const Register = () => {
     e.preventDefault();
     try {
       await axios.post('http://localhost:8000/api/auth/register/', formData); // Updated endpoint with trailing slash
+      toast.success('Account created successfully!');
       navigate('/login');
     } catch (error) {
       console.error('Registration failed:', error);
@@ -83,6 +86,7 @@ const Register = () => {
           </button>
         </form>
       </div>
+      <ToastContainer />
     </div>
   );
 };

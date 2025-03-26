@@ -16,7 +16,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={`fixed h-screen bg-gray-900 text-white flex flex-col shadow-xl ${isCollapsed ? 'w-16' : 'w-47'} transition-all duration-300 z-10`}> {/* Set z-index to 10 */}
+    <div className={`fixed h-screen bg-gray-900 text-white flex flex-col shadow-xl mt-16 ${isCollapsed ? 'w-16' : 'w-47'} transition-all duration-300 z-10`}> {/* Set z-index to 10 */}
       {/* Toggle Button */}
       <button onClick={toggleSidebar} className="p-3 text-gray-300 hover:text-white transition self-end">
         <ChevronRight size={24} className={`${isCollapsed ? '' : 'rotate-180'} transition-transform`} />

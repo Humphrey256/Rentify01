@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const BookRental = () => {
     const { rentalId } = useParams();
@@ -84,6 +86,7 @@ const BookRental = () => {
                     customizations,
                     callback: (response) => {
                         if (response.status === 'successful') {
+                            toast.success('Booking successful!');
                             navigate('/success');
                         } else {
                             navigate('/cancel');
@@ -115,6 +118,7 @@ const BookRental = () => {
                         },
                     }
                 );
+                toast.success('Booking successful!');
                 navigate('/bookings');
             } catch (error) {
                 console.error('Error creating booking:', error);
@@ -172,6 +176,7 @@ const BookRental = () => {
                     Book Now
                 </button>
             </form>
+            <ToastContainer />
         </div>
     );
 };

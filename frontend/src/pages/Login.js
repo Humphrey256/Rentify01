@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react'; // Importing icons for show/hide password
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -24,6 +26,8 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(userData));
       axios.defaults.headers.common['Authorization'] = `Token ${token}`; // Updated to use Token
       console.log('Token received and set:', token); // Log the token when it is received and set
+
+      toast.success('Login successful!');
 
       // Redirect based on role
       if (role === 'admin') {
@@ -75,6 +79,7 @@ const Login = () => {
           Login
         </button>
       </form>
+      <ToastContainer />
     </div>
   );
 };
