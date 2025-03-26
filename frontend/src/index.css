@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    background-color: #f0f0f0; /* Change this to your desired plain color */
+    color: #333; /* Change this to your desired text color */
+    font-family: Arial, sans-serif;
+}
+
