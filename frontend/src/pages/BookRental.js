@@ -3,32 +3,42 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import { ToastContainer, toast } from 'react-toastify';
+import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3'; // Correct package
 import 'react-toastify/dist/ReactToastify.css';
+import API_BASE_URL from '../utils/api';
 
 const BookRental = () => {
     const { rentalId } = useParams();
     const { user } = useUser();
     const navigate = useNavigate();
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [totalPrice, setTotalPrice] = useState('');
-    const [dailyPrice, setDailyPrice] = useState(0);
-    const [paymentMethod, setPaymentMethod] = useState('Physical'); // Added payment method state
+    const [formData, setFormData] = useState({
+        startDate: '',
+        endDate: '',
+        totalPrice: '',
+        dailyPrice: 0,
+        paymentMethod: 'Physical'
+    });
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [paymentData, setPaymentData] = useState(null);
+
+    const { startDate, endDate, totalPrice, dailyPrice, paymentMethod } = formData;
 
     useEffect(() => {
-        // Fetch rental details to get the daily price
         const fetchRentalDetails = async () => {
             try {
-                const response = await axios.get(`http://localhost:8000/api/rentals/${rentalId}/`, {
-                    headers: {
-                        'Authorization': `Token ${user.token}`,
-                    },
+                const response = await axios.get(`${API_BASE_URL}/rentals/${rentalId}/`, {
+                    headers: { 'Authorization': `Token ${user.token}` },
                 });
-                setDailyPrice(response.data.price);
+                setFormData(prev => ({
+                    ...prev,
+                    dailyPrice: response.data.price,
+                }));
+                toast.info(`Daily rental price: $${response.data.price}`);
             } catch (error) {
-                console.error('Error fetching rental details:', error);
-                setError('Error fetching rental details.');
+                const errorMsg = error.response?.data?.error || 'Error fetching rental details';
+                toast.error(errorMsg);
+                setError(errorMsg);
             }
         };
 
@@ -36,147 +46,197 @@ const BookRental = () => {
     }, [rentalId, user.token]);
 
     useEffect(() => {
-        // Calculate total price based on start and end dates
         if (startDate && endDate && dailyPrice) {
             const start = new Date(startDate);
             const end = new Date(endDate);
-            const days = (end - start) / (1000 * 60 * 60 * 24) + 1; // Calculate the number of days
-            setTotalPrice(days * dailyPrice);
+
+            if (start > end) {
+                toast.error('End date cannot be before start date');
+                setFormData(prev => ({ ...prev, totalPrice: 0 }));
+                return;
+            }
+
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const total = (days * dailyPrice).toFixed(2);
+            setFormData(prev => ({ ...prev, totalPrice: total }));
         }
     }, [startDate, endDate, dailyPrice]);
 
+    const validateDates = () => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (start < today) {
+            toast.error('Start date cannot be in the past');
+            return false;
+        }
+        if (end < start) {
+            toast.error('End date cannot be before start date');
+            return false;
+        }
+        return true;
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     const handleBooking = async (e) => {
         e.preventDefault();
+        setError('');
+        setIsLoading(true);
 
         if (!startDate || !endDate || !totalPrice) {
-            setError('All fields are required.');
+            toast.error('All fields are required.');
+            setIsLoading(false);
             return;
         }
 
-        if (paymentMethod === 'Online') {
-            // Handle online payment with Flutterwave
-            try {
-                const response = await axios.post(
-                    'http://localhost:8000/api/bookings/',
-                    {
-                        rental: rentalId,
-                        start_date: startDate,
-                        end_date: endDate,
-                        total_price: totalPrice,
-                        payment_method: paymentMethod,
-                    },
-                    {
-                        headers: {
-                            'Authorization': `Token ${user.token}`,
-                        },
-                    }
-                );
+        const bookingData = {
+            rental: parseInt(rentalId, 10),
+            start_date: startDate,
+            end_date: endDate,
+            total_price: parseFloat(totalPrice),
+            payment_method: paymentMethod,
+        };
 
-                const { data } = response;
-                const { tx_ref, amount, currency, payment_options, redirect_url, customer, customizations } = data;
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/bookings/`,
+                bookingData,
+                { headers: { 'Authorization': `Token ${user.token}` } }
+            );
 
-                window.FlutterwaveCheckout({
-                    public_key: 'FLWPUBK_TEST-f3f4cf12710c5faef6a453ef0ca36d57-X', // Ensure the Flutterwave test public key is used
-                    tx_ref,
-                    amount,
-                    currency,
-                    payment_options,
-                    redirect_url,
-                    customer,
-                    customizations,
-                    callback: (response) => {
-                        if (response.status === 'successful') {
-                            toast.success('Booking successful!');
-                            navigate('/success');
-                        } else {
-                            navigate('/cancel');
-                        }
-                    },
-                    onclose: () => {
-                        navigate('/cancel');
-                    },
-                });
-            } catch (error) {
-                console.error('Error processing payment:', error);
-                setError('Error processing payment.');
-            }
-        } else {
-            // Handle physical payment
-            try {
-                await axios.post(
-                    'http://localhost:8000/api/bookings/',
-                    {
-                        rental: rentalId,
-                        start_date: startDate,
-                        end_date: endDate,
-                        total_price: totalPrice,
-                        payment_method: paymentMethod,
-                    },
-                    {
-                        headers: {
-                            'Authorization': `Token ${user.token}`,
-                        },
-                    }
-                );
-                toast.success('Booking successful!');
-                navigate('/bookings');
-            } catch (error) {
-                console.error('Error creating booking:', error);
-                setError('Error creating booking.');
-            }
+            const { data } = response;
+            setPaymentData(data); // Store payment data for FlutterwaveButton
+            toast.success('Booking created. Proceed to payment.');
+        } catch (error) {
+            console.error('Error processing booking:', error);
+            toast.error(error.message || 'Error processing booking.');
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    const flutterwaveConfig = paymentData && {
+        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: paymentData.tx_ref,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        payment_options: paymentData.payment_options,
+        customer: paymentData.customer,
+        customizations: paymentData.customizations,
+        callback: async (response) => {
+            console.log('Flutterwave response:', response);
+            if (response.status === 'successful') {
+                toast.success('Payment successful! Confirming booking...');
+                try {
+                    await axios.post(
+                        `${API_BASE_URL}/bookings/confirm/`,
+                        { tx_ref: paymentData.tx_ref },
+                        { headers: { 'Authorization': `Token ${user.token}` } }
+                    );
+                    navigate('/success');
+                } catch (error) {
+                    console.error('Error confirming booking:', error);
+                    toast.error('Error confirming booking.');
+                }
+            } else {
+                toast.error('Payment failed.');
+                navigate('/cancel');
+            }
+            closePaymentModal(); // Close the Flutterwave modal
+        },
+        onclose: () => {
+            toast.warning('Payment window closed.');
+        },
     };
 
     return (
         <div className="min-h-screen bg-gray-100 p-4">
-            <h1 className="text-2xl font-bold mb-4">Book Rental</h1>
-            {error && <p className="text-red-500">{error}</p>}
-            <form onSubmit={handleBooking} className="bg-white p-6 rounded shadow-md w-full max-w-md mx-auto">
-                <div className="mb-4">
-                    <label className="block text-gray-700">Start Date</label>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                        required
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-gray-700">End Date</label>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                        required
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-gray-700">Total Price</label>
-                    <input
-                        type="number"
-                        value={totalPrice}
-                        readOnly
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-gray-700">Payment Method</label>
-                    <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded mt-1"
+            <div className="max-w-md mx-auto">
+                <h1 className="text-2xl font-bold mb-4">Book Rental</h1>
+                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+
+                <form onSubmit={handleBooking} className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Start Date</label>
+                        <input
+                            type="date"
+                            name="startDate"
+                            value={startDate}
+                            onChange={handleInputChange}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">End Date</label>
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={endDate}
+                            onChange={handleInputChange}
+                            min={startDate || new Date().toISOString().split('T')[0]}
+                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Total Price ($)</label>
+                        <input
+                            type="number"
+                            value={totalPrice}
+                            readOnly
+                            className="w-full p-2 border rounded bg-gray-50"
+                        />
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-gray-700 mb-2">Payment Method</label>
+                        <select
+                            name="paymentMethod"
+                            value={paymentMethod}
+                            onChange={handleInputChange}
+                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="Physical">Physical Payment</option>
+                            <option value="Online">Online Payment</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`w-full p-3 rounded text-white font-semibold
+                            ${isLoading
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-blue-500 hover:bg-blue-600'}`}
                     >
-                        <option value="Physical">Physical</option>
-                        <option value="Online">Online</option>
-                    </select>
-                </div>
-                <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-                    Book Now
-                </button>
-            </form>
-            <ToastContainer />
+                        {isLoading ? 'Processing...' : 'Book Now'}
+                    </button>
+                </form>
+
+                {paymentData && paymentMethod === 'Online' && (
+                    <div className="mt-4">
+                        <FlutterWaveButton
+                            {...flutterwaveConfig}
+                            className="w-full p-3 rounded text-white font-semibold bg-green-500 hover:bg-green-600"
+                            text="Pay Now"
+                        />
+                    </div>
+                )}
+            </div>
+            <ToastContainer position="top-right" autoClose={5000} />
         </div>
     );
 };

@@ -9,6 +9,10 @@ class Booking(models.Model):
     end_date = models.DateField()
     total_price = models.DecimalField(decimal_places=2, max_digits=10)
     payment_status = models.CharField(max_length=50, default='Pending')
-    payment_method = models.CharField(max_length=50, default='Physical')  # Added payment method field
+    payment_method = models.CharField(
+        max_length=50,
+        default='Physical',
+        choices=[('Online', 'Online'), ('Physical', 'Physical')]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
