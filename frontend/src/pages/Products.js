@@ -40,7 +40,7 @@ const Products = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 relative z-0"> {/* Set z-index to 0 */}
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative z-0"> {/* Added mt-16 to start below the navbar */}
       <h1 className="text-3xl font-bold mb-6 text-center">Available Products</h1>
       <div className="flex justify-center mb-6">
         <input
@@ -69,8 +69,8 @@ const Products = () => {
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white shadow-lg rounded-lg p-4 transition-transform transform hover:scale-105">
               <img
-                src={`http://localhost:8000/media/rentals/${typeof product.image === 'string' ? product.image.split('/').pop() : product.image}`}
-                alt={product.name}
+                src={product.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
+                alt={product.name || 'Product Image'}
                 className="w-full h-48 object-cover mb-4 rounded-lg"
               />
               <h2 className="text-xl font-semibold mb-2">{product.name}</h2>

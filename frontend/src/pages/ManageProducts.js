@@ -120,7 +120,7 @@ const ManageProducts = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 ml-20 md:ml-30">
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-20 md:ml-30"> {/* Added mt-16 to start below the navbar */}
       <h1 className="text-2xl font-bold mb-4">Manage Products</h1>
       <div className="mb-4">
         <input
@@ -217,8 +217,8 @@ const ManageProducts = () => {
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white shadow-lg rounded p-4">
               <img
-                src={`http://localhost:8000/media/rentals/${typeof product.image === 'string' ? product.image.split('/').pop() : product.image}`} // Ensure the image URL is correct
-                alt={product.name}
+                src={product.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
+                alt={product.name || 'Product Image'}
                 className="w-full h-40 object-cover mb-4"
               />
               <h2 className="text-xl font-semibold">{product.name}</h2>

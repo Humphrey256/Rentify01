@@ -71,7 +71,7 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 flex items-center justify-center"> {/* Added mt-16 to start below the navbar */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Add Product</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
@@ -139,6 +139,17 @@ const AddProduct = () => {
             className="w-full p-2 border border-gray-300 rounded mt-1"
           />
         </div>
+        {formData.image && (
+          <img
+            src={
+              formData.image instanceof File
+                ? URL.createObjectURL(formData.image)
+                : 'http://localhost:8000/media/default-placeholder.png' // Fallback image
+            }
+            alt="Preview"
+            className="w-full h-40 object-cover mb-4 rounded-lg"
+          />
+        )}
         <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
           Add Product
         </button>

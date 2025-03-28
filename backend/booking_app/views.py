@@ -9,6 +9,11 @@ import uuid
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import APIException
 from rest_framework.views import APIView
+from django.core.mail import send_mail
+from datetime import timedelta
+from django.utils.timezone import now
+from decimal import Decimal
+from rentals_app.models import Rental  # Import the Rental model
 
 class BookingError(APIException):
     status_code = 400
@@ -19,6 +24,9 @@ class BookingListCreateView(generics.ListCreateAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user).select_related('rental')
 
     def validate_booking_dates(self, start_date, end_date):
         if start_date > end_date:
@@ -46,6 +54,12 @@ class BookingListCreateView(generics.ListCreateAPIView):
             
             if missing_fields:
                 raise BookingError(f"Missing required fields: {', '.join(missing_fields)}")
+
+            # Resolve the rental field to a Rental object
+            try:
+                rental = Rental.objects.get(id=request.data['rental'])
+            except Rental.DoesNotExist:
+                raise BookingError(f"Rental with ID {request.data['rental']} does not exist.")
 
             # Validate dates
             try:
@@ -77,7 +91,9 @@ class BookingListCreateView(generics.ListCreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            self.perform_create(serializer)
+            # Save the booking with the resolved rental object
+            serializer.save(user=self.request.user, rental=rental)
+
             booking = serializer.data
 
             # Handle online payment
@@ -126,25 +142,70 @@ class BookingDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Booking.objects.filter(user=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        try:
+            booking = self.get_object()
+
+            # Validate dates
+            start_date = datetime.datetime.strptime(request.data['start_date'], '%Y-%m-%d').date()
+            end_date = datetime.datetime.strptime(request.data['end_date'], '%Y-%m-%d').date()
+            if start_date > end_date:
+                return Response({'error': 'End date cannot be before start date.'}, status=status.HTTP_400_BAD_REQUEST)
+            if start_date < datetime.date.today():
+                return Response({'error': 'Start date cannot be in the past.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Calculate the new total price
+            daily_price = booking.rental.price
+            new_total_price = Decimal((end_date - start_date).days + 1) * daily_price
+
+            # Check if additional payment is required
+            if new_total_price > booking.total_price:
+                additional_payment = new_total_price - booking.total_price
+                booking.payment_status = 'Pending Additional Payment'
+                booking.total_price = new_total_price
+                booking.save()
+
+                return Response({
+                    'message': 'Booking updated. Additional payment required.',
+                    'additional_payment': float(additional_payment),
+                    'new_total_price': float(new_total_price),
+                }, status=status.HTTP_200_OK)
+
+            # Update booking
+            serializer = self.get_serializer(booking, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 class ActiveBookingsView(generics.ListAPIView):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Booking.objects.filter(
-            user=self.request.user,
-            end_date__gte=datetime.date.today()
-        ).order_by('start_date')
+        try:
+            return Booking.objects.filter(
+                user=self.request.user,
+                end_date__gte=datetime.date.today()
+            ).order_by('start_date')
+        except Exception as e:
+            print(f"Error fetching active bookings: {str(e)}")  # Log the error
+            raise APIException("Failed to fetch active bookings. Please try again later.")
 
 class RentalHistoryView(generics.ListAPIView):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Booking.objects.filter(
-            user=self.request.user,
-            end_date__lt=datetime.date.today()
-        ).order_by('-end_date')
+        try:
+            return Booking.objects.filter(
+                user=self.request.user,
+                end_date__lt=datetime.date.today()
+            ).order_by('-end_date')
+        except Exception as e:
+            print(f"Error fetching rental history: {str(e)}")  # Log the error
+            raise APIException("Failed to fetch rental history. Please try again later.")
 
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -169,6 +230,15 @@ class ConfirmPaymentView(APIView):
             booking.payment_status = 'Completed'
             booking.save()
 
+            # Send email notification
+            send_mail(
+                subject='Booking Confirmation',
+                message=f'Your booking #{booking.id} has been confirmed. Thank you for your payment!',
+                from_email='noreply@rentify.com',
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+
             return Response({'message': 'Payment confirmed and booking completed.'}, status=status.HTTP_200_OK)
         except BookingError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -178,3 +248,35 @@ class ConfirmPaymentView(APIView):
                 {'error': 'An unexpected error occurred', 'details': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class PaymentHistoryView(generics.ListAPIView):
+    serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user, payment_status='Completed').order_by('-created_at')
+
+class CancelBookingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            booking_id = request.data.get('booking_id')
+            if not booking_id:
+                return Response({'error': 'Booking ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Fetch the booking
+            booking = Booking.objects.filter(id=booking_id, user=request.user).first()
+            if not booking:
+                return Response({'error': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Check if the booking is within the 24-hour cancellation window
+            time_difference = now() - booking.created_at
+            if time_difference > timedelta(hours=24):
+                return Response({'error': 'You can only cancel bookings within 24 hours of creation.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Cancel the booking
+            booking.delete()
+            return Response({'message': 'Booking canceled successfully.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
