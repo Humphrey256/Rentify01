@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import socket
+from django.core.servers.basehttp import WSGIServer
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,6 +33,7 @@ INSTALLED_APPS = [
     'booking_app',  # Ensure this line is included
     'reviews_app',  # Add reviews_app to the installed apps
     'issues_app',  # Add issues_app to the installed apps
+    'notifications_app',  # Add this line
 ]
 
 MIDDLEWARE = [
@@ -63,6 +66,12 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backends.wsgi.application'  # Instead of 'backend.wsgi.application'
+
+# Custom WSGI server to handle long-running requests
+class CustomWSGIServer(WSGIServer):
+    timeout = 120  # Increase timeout to 120 seconds
+
+WSGIServer = CustomWSGIServer
 
 # DATABASE SETTINGS
 DATABASES = {

@@ -24,6 +24,7 @@ const Login = () => {
       const userData = { id, username: userUsername, email, role, token };
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token); // Save the token in localStorage
       axios.defaults.headers.common['Authorization'] = `Token ${token}`; // Updated to use Token
       console.log('Token received and set:', token); // Log the token when it is received and set
 

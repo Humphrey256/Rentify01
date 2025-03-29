@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/bookings/', include('booking_app.urls')),  # Ensure this line includes the booking routes
     path('api/reviews/', include('reviews_app.urls')),  # Ensure this line includes the review routes
     path('api/issues/', include('issues_app.urls')),  # Ensure this line includes the issue routes
+    path('api/notifications/', include('notifications_app.urls')),  # Ensure this line is correct
 ]
 
 if settings.DEBUG:

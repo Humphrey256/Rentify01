@@ -14,3 +14,10 @@ class CustomWSGIServer(WSGIServer):
     timeout = 120  # Increase timeout to 120 seconds
 
 WSGIServer = CustomWSGIServer
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
