@@ -11,6 +11,7 @@ const ManageProducts = () => {
   const [loading, setLoading] = useState(true); // Added loading state
   const [searchTerm, setSearchTerm] = useState(''); // Added search term state
   const [filterCategory, setFilterCategory] = useState(''); // Added filter category state
+  const [activeProduct, setActiveProduct] = useState(null); // Track active product for modal
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -219,11 +220,16 @@ const ManageProducts = () => {
               <img
                 src={product.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
                 alt={product.name || 'Product Image'}
-                className="w-full h-40 object-cover mb-4"
+                className="w-full h-48 object-cover mb-4 rounded-lg" // Set fixed height and maintain aspect ratio
               />
               <h2 className="text-xl font-semibold">{product.name}</h2>
-              <p>{product.details}</p>
               <p className="font-bold text-lg mt-2">${product.price}/day</p>
+              <p
+                className="text-blue-600 cursor-pointer hover:underline mt-2"
+                onClick={() => setActiveProduct(product)} // Set active product for modal
+              >
+                View Details
+              </p>
               <button
                 onClick={() => handleEdit(product)}
                 className="bg-yellow-500 text-white p-2 mt-4 w-full rounded hover:bg-yellow-600"
@@ -238,6 +244,26 @@ const ManageProducts = () => {
               </button>
             </div>
           ))}
+        </div>
+      )}
+      {activeProduct && ( // Display active product details in a modal
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 mt-16">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto max-h-[calc(100vh-4rem)]">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              onClick={() => setActiveProduct(null)} // Close modal
+            >
+              X
+            </button>
+            <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
+            <img
+              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              alt={activeProduct.name || 'Product Image'}
+              className="w-full h-auto object-contain mb-4 rounded-lg" // Ensure full image is displayed
+            />
+            <p className="text-gray-700">{activeProduct.details}</p>
+            <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
+          </div>
         </div>
       )}
     </div>

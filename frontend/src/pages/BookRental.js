@@ -12,6 +12,14 @@ const BookRental = () => {
     const { user } = useUser();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        // Redirect to login if user is not authenticated
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+    }, [user, navigate]);
+
     const [formData, setFormData] = useState({
         startDate: '',
         endDate: '',
@@ -58,7 +66,7 @@ const BookRental = () => {
         if (user && rentalId) {
             fetchRentalDetails();
         }
-    }, [rentalId, user.token]);
+    }, [rentalId, user]);
 
     useEffect(() => {
         if (startDate && endDate && dailyPrice) {
@@ -141,9 +149,9 @@ const BookRental = () => {
     };
 
     const flutterwaveConfig = paymentData && {
-        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY,
+        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY, // Use live public key for live environment
         tx_ref: paymentData.tx_ref,
-        amount: paymentData.amount,
+        amount: paymentData.amount, // Allow full amount
         currency: paymentData.currency,
         payment_options: paymentData.payment_options,
         customer: paymentData.customer,
@@ -176,6 +184,14 @@ const BookRental = () => {
             setIsPaymentLoading(false);
         },
     };
+
+    useEffect(() => {
+        console.log('Flutterwave Public Key:', process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY);
+        if (!process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY) {
+            console.error('Flutterwave public key is not set. Please check your .env file.');
+            toast.error('Payment configuration error. Please contact support.');
+        }
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100 p-4 mt-16"> {/* Added mt-16 to start below the navbar */}
@@ -259,11 +275,15 @@ const BookRental = () => {
 
                 {paymentData && paymentMethod === 'Online' && (
                     <div className="mt-4">
-                        <FlutterWaveButton
-                            {...flutterwaveConfig}
-                            className="w-full p-3 rounded text-white font-semibold bg-green-500 hover:bg-green-600"
-                            text="Pay Now"
-                        />
+                        {process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY ? (
+                            <FlutterWaveButton
+                                {...flutterwaveConfig}
+                                className="w-full p-3 rounded text-white font-semibold bg-green-500 hover:bg-green-600"
+                                text="Pay Now"
+                            />
+                        ) : (
+                            <p className="text-red-500">Payment configuration error. Please contact support.</p>
+                        )}
                     </div>
                 )}
             </div>

@@ -5,6 +5,7 @@ import { useUser } from '../context/UserContext';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
+  const [activeProduct, setActiveProduct] = useState(null); // Added state for active product details
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,7 +41,7 @@ const Products = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative z-0"> {/* Added mt-16 to start below the navbar */}
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-20 md:ml-30 relative z-0"> {/* Adjusted ml-20 to ml-64 for sidebar spacing */}
       <h1 className="text-3xl font-bold mb-6 text-center">Available Products</h1>
       <div className="flex justify-center mb-6">
         <input
@@ -71,11 +72,16 @@ const Products = () => {
               <img
                 src={product.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
                 alt={product.name || 'Product Image'}
-                className="w-full h-48 object-cover mb-4 rounded-lg"
+                className="w-full h-48 object-cover mb-4 rounded-lg" // Set fixed height and maintain aspect ratio
               />
-              <h2 className="text-xl font-semibold mb-2">{product.name}</h2>
-              <p className="text-gray-700">{product.details}</p>
+              <h2 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h2> {/* Updated font and color */}
               <p className="font-bold text-lg mt-2">${product.price}/day</p>
+              <button
+                className="cursor-pointer text-blue-600 hover:underline mt-2"
+                onClick={() => setActiveProduct(product)} // Set active product
+              >
+                View Details
+              </button>
               {user?.role !== 'admin' && (
                 <button
                   className="bg-yellow-600 text-white p-2 mt-4 w-full rounded hover:bg-yellow-700"
@@ -86,6 +92,26 @@ const Products = () => {
               )}
             </div>
           ))}
+        </div>
+      )}
+      {activeProduct && ( // Display active product details in front of all components
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 mt-16">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto max-h-[calc(100vh-4rem)]">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              onClick={() => setActiveProduct(null)} // Close details
+            >
+              X
+            </button>
+            <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
+            <img
+              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              alt={activeProduct.name || 'Product Image'}
+              className="w-full h-auto object-contain mb-4 rounded-lg" // Ensure full image is displayed
+            />
+            <p className="text-gray-700">{activeProduct.details}</p>
+            <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
+          </div>
         </div>
       )}
     </div>
