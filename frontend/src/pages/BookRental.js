@@ -186,7 +186,11 @@ const BookRental = () => {
     };
 
     useEffect(() => {
-        console.log('Flutterwave Public Key:', process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY);
+console.log('Flutterwave Public Key:', process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY); // Debugging line to check if the key is loaded
+if (!process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY) {
+    console.error('Flutterwave public key is not set. Please check your .env file.');
+    toast.error('Payment configuration error. Please contact support.');
+}
         if (!process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY) {
             console.error('Flutterwave public key is not set. Please check your .env file.');
             toast.error('Payment configuration error. Please contact support.');
