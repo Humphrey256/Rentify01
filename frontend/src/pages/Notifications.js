@@ -8,15 +8,17 @@ const Notifications = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <h1 className="text-2xl font-bold mb-4">Notifications</h1>
-      <ul className="space-y-4">
-        {notifications.map((notification) => (
-          <li key={notification.id} className="bg-white p-4 rounded shadow">
-            {notification.message}
-          </li>
-        ))}
-      </ul>
+    <div className="ml-64 min-h-screen bg-gray-100 p-6">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl">
+        <h1 className="text-2xl font-bold mb-25">Notifications</h1>
+        <ul className="space-y-4">
+          {notifications.map((notification) => (
+            <li key={notification.id} className="bg-gray-50 p-4 rounded shadow hover:shadow-md transition-all">
+              {notification.message}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
