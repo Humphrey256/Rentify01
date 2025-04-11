@@ -121,8 +121,19 @@ const ManageProducts = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-20 md:ml-30"> {/* Added mt-16 to start below the navbar */}
-      <h1 className="text-2xl font-bold mb-4">Manage Products</h1>
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative overflow-y-auto"> {/* Added overflow-y-auto for scrolling */}
+      <h1 className="text-xl font-bold mb-4 text-center sm:text-left">Manage Products</h1>
+
+      {/* Add Product Button (Small Screens Only) */}
+      <div className="mb-4 sm:block md:hidden"> {/* Added a wrapper for spacing */}
+        <button
+          onClick={() => navigate('/add-product')} // Navigate to the Add Product page
+          className="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 w-full sm:w-auto"
+        >
+          Add Product
+        </button>
+      </div>
+
       <div className="mb-4">
         <input
           type="text"
@@ -144,8 +155,8 @@ const ManageProducts = () => {
         </select>
       </div>
       {editingProduct ? (
-        <form onSubmit={handleUpdate} className="bg-white p-6 rounded shadow-md w-full max-w-md mx-auto">
-          <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+        <form onSubmit={handleUpdate} className="bg-white p-4 rounded shadow-md w-full max-w-md mx-auto">
+          <h2 className="text-lg font-bold mb-4">Edit Product</h2>
           <div className="mb-4">
             <label className="block text-gray-700">Name</label>
             <input
@@ -222,8 +233,8 @@ const ManageProducts = () => {
                 alt={product.name || 'Product Image'}
                 className="w-full h-48 object-cover mb-4 rounded-lg" // Set fixed height and maintain aspect ratio
               />
-              <h2 className="text-xl font-semibold">{product.name}</h2>
-              <p className="font-bold text-lg mt-2">${product.price}/day</p>
+              <h2 className="text-lg font-semibold">{product.name}</h2>
+              <p className="font-bold text-md mt-2">${product.price}/day</p>
               <p
                 className="text-blue-600 cursor-pointer hover:underline mt-2"
                 onClick={() => setActiveProduct(product)} // Set active product for modal
@@ -255,14 +266,14 @@ const ManageProducts = () => {
             >
               X
             </button>
-            <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
+            <h2 className="text-lg font-bold mb-4">{activeProduct.name}</h2>
             <img
               src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
               alt={activeProduct.name || 'Product Image'}
               className="w-full h-auto object-contain mb-4 rounded-lg" // Ensure full image is displayed
             />
             <p className="text-gray-700">{activeProduct.details}</p>
-            <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
+            <p className="font-bold text-md mt-4">${activeProduct.price}/day</p>
           </div>
         </div>
       )}

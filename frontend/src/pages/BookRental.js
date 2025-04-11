@@ -11,6 +11,7 @@ const BookRental = () => {
     const { rentalId } = useParams();
     const { user } = useUser();
     const navigate = useNavigate();
+    const [rental, setRental] = useState(null);
 
     useEffect(() => {
         // Redirect to login if user is not authenticated
@@ -46,19 +47,28 @@ const BookRental = () => {
                     headers: { Authorization: `Token ${user.token}` },
                 });
 
+                setRental(response.data);
+                
+                // Check if rental is available
+                if (!response.data.is_available) {
+                    toast.error('This rental is currently not available for booking.');
+                    setError('This rental is currently not available for booking.');
+                    return;
+                }
+
                 setFormData((prev) => ({
                     ...prev,
                     dailyPrice: response.data.price,
                 }));
                 toast.info(`Daily rental price: $${response.data.price}`);
             } catch (error) {
-                console.error('Error fetching rental details:', error); // Log the error for debugging
+                console.error('Error fetching rental details:', error);
                 const errorMsg = error.response?.data?.error || 'Error fetching rental details. Please try again later.';
                 toast.error(errorMsg);
                 setError(errorMsg);
                 setFormData((prev) => ({
                     ...prev,
-                    dailyPrice: 0, // Reset daily price to prevent further calculation errors
+                    dailyPrice: 0,
                 }));
             }
         };
@@ -112,6 +122,18 @@ const BookRental = () => {
 
     const handleBooking = async (e) => {
         e.preventDefault();
+        
+        // Check if rental is still available
+        if (rental && !rental.is_available) {
+            toast.error('This rental is no longer available. Please select another rental.');
+            setError('This rental is no longer available.');
+            return;
+        }
+
+        if (!validateDates()) {
+            return;
+        }
+
         setError('');
         setIsLoading(true);
 
@@ -131,27 +153,54 @@ const BookRental = () => {
         };
 
         try {
+            // Check latest availability before proceeding
+            const availabilityCheck = await axios.get(`http://localhost:8000/api/rentals/${rentalId}/`, {
+                headers: { Authorization: `Token ${user.token}` },
+            });
+            
+            if (!availabilityCheck.data.is_available) {
+                toast.error('This rental was just booked by someone else. Please select another rental.');
+                setError('This rental is no longer available.');
+                setIsLoading(false);
+                return;
+            }
+
             const response = await axios.post(`http://localhost:8000/api/bookings/`, bookingData, {
                 headers: { Authorization: `Token ${user.token}` },
             });
 
             const { data } = response;
             setPaymentData(data); // Store payment data for FlutterWaveButton
-            toast.success('Booking created. Proceed to payment.');
+            toast.success('Booking created. Proceed to payment if required.');
+            
+            // If physical payment, redirect to success page directly
+            if (paymentMethod === 'Physical') {
+                navigate('/bookings/success', { 
+                    state: { 
+                        booking: data,
+                        rental: rental
+                    } 
+                });
+            }
         } catch (error) {
-            console.error('Error processing booking:', error); // Log the error for debugging
-            const errorMsg = error.response?.data?.error || 'Error processing booking.';
-            toast.error(errorMsg);
-            setError(errorMsg);
+            console.error('Error processing booking:', error);
+            
+            if (error.response?.data?.error?.includes('not available')) {
+                toast.error('This rental is not available for the selected dates.');
+            } else {
+                const errorMsg = error.response?.data?.error || 'Error processing booking.';
+                toast.error(errorMsg);
+                setError(errorMsg);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const flutterwaveConfig = paymentData && {
-        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY, // Use live public key for live environment
+        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: paymentData.tx_ref,
-        amount: paymentData.amount, // Allow full amount
+        amount: paymentData.amount,
         currency: paymentData.currency,
         payment_options: paymentData.payment_options,
         customer: paymentData.customer,
@@ -167,7 +216,13 @@ const BookRental = () => {
                         { tx_ref: paymentData.tx_ref },
                         { headers: { Authorization: `Token ${user.token}` } }
                     );
-                    navigate('/success');
+                    navigate('/bookings/success', { 
+                        state: { 
+                            booking: paymentData,
+                            rental: rental,
+                            paymentStatus: 'Completed'
+                        } 
+                    });
                 } catch (error) {
                     console.error('Error confirming booking:', error);
                     toast.error('Error confirming booking.');
@@ -185,23 +240,52 @@ const BookRental = () => {
         },
     };
 
-    useEffect(() => {
-console.log('Flutterwave Public Key:', process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY); // Debugging line to check if the key is loaded
-if (!process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY) {
-    console.error('Flutterwave public key is not set. Please check your .env file.');
-    toast.error('Payment configuration error. Please contact support.');
-}
-        if (!process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY) {
-            console.error('Flutterwave public key is not set. Please check your .env file.');
-            toast.error('Payment configuration error. Please contact support.');
-        }
-    }, []);
+    // If rental is unavailable, show unavailable message with option to go back
+    if (rental && !rental.is_available) {
+        return (
+            <div className="min-h-screen bg-gray-100 p-4 mt-16">
+                <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+                    <div className="text-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h2 className="text-xl font-bold mt-2">Rental Unavailable</h2>
+                        <p className="text-gray-600 mt-1">This rental is currently not available for booking.</p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/rentals')}
+                        className="w-full p-3 rounded bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                    >
+                        Browse Available Rentals
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 mt-16"> {/* Added mt-16 to start below the navbar */}
+        <div className="min-h-screen bg-gray-100 p-4 mt-16"> 
             <div className="max-w-md mx-auto">
                 <h1 className="text-2xl font-bold mb-4">Book Rental</h1>
                 {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+
+                {rental && (
+                    <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold">{rental.name}</h2>
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">Available</span>
+                        </div>
+                        {rental.image && (
+                            <img 
+                                src={rental.image} 
+                                alt={rental.name} 
+                                className="w-full h-48 object-cover rounded-lg mb-4"
+                            />
+                        )}
+                        <p className="text-gray-600 mb-2">{rental.description}</p>
+                        <p className="font-bold text-lg">${rental.price}/day</p>
+                    </div>
+                )}
 
                 <form onSubmit={handleBooking} className="bg-white p-6 rounded-lg shadow-md">
                     <div className="mb-4">
