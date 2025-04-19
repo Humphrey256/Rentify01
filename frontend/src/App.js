@@ -16,12 +16,12 @@ import RentForm from './pages/RentForm';
 import Cart from './pages/Cart';
 import AdminDashboard from './pages/AdminDashboard';
 import BookRental from './pages/BookRental';
-import Success from './pages/Success';
+import SuccessPage from './pages/SuccessPage'; // Updated import
 import Cancel from './pages/Cancel';
 import ReviewForm from './pages/ReviewForm';
+import AuthSuccess from './pages/AuthSuccess'; // New import
 import { UserProvider, useUser } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
-
 
 const AppLayout = ({ children }) => {
   const location = useLocation();
@@ -63,9 +63,10 @@ const App = () => {
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="/book/:rentalId" element={<BookRental />} />
-                <Route path="/success" element={<Success />} />
+                <Route path="/bookings/success" element={<SuccessPage />} /> {/* Updated route */}
                 <Route path="/cancel" element={<Cancel />} />
                 <Route path="/review/:rentalId" element={<ReviewForm />} />
+                <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route */}
               </Routes>
             </AppLayout>
           </div>

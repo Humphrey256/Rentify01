@@ -3,11 +3,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 import socket
 from django.core.servers.basehttp import WSGIServer
+import logging
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # Change BASE_DIR to match the new structure
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: Keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
@@ -18,23 +20,22 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
-    'django.contrib.admin',  # Ensure this line is included
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',  # Ensure this line is included
+    'rest_framework.authtoken',
     'corsheaders',
-    'auth_app',  # Ensure this line is included
-    'rentals_app',  # Ensure this line is included
-    'registration_app',  # Ensure this line is included
-    'booking_app',  # Ensure this line is included
-    'reviews_app',  # Add reviews_app to the installed apps
-    'issues_app',  # Add issues_app to the installed apps
-    'notifications_app',  # Add this line
-    # Social Auth apps
+    'auth_app',
+    'rentals_app',
+    'registration_app',
+    'booking_app',
+    'reviews_app',
+    'issues_app',
+    'notifications_app',
     'oauth2_provider',
     'social_django',
     'drf_social_oauth2',
@@ -43,21 +44,20 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Move CORS middleware before CommonMiddleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Social Auth middleware
     'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
-ROOT_URLCONF = 'backends.urls'  # Instead of 'backend.urls'
+ROOT_URLCONF = 'backends.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',  # Corrected backend
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -66,7 +66,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # Social Auth context processors
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
             ],
@@ -74,7 +73,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backends.wsgi.application'  # Instead of 'backend.wsgi.application'
+WSGI_APPLICATION = 'backends.wsgi.application'
 
 # Custom WSGI server to handle long-running requests
 class CustomWSGIServer(WSGIServer):
@@ -118,9 +117,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS SETTINGS (Allow only specific front-end domains)
+# CORS SETTINGS
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # React frontend
+    'http://localhost:3000',
     'https://your-production-domain.com',
 ]
 
@@ -128,27 +127,29 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',  # Ensure this line is included
-        # Social OAuth2
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
-        'drf_social_oauth2.authentication.SocialAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Ensure JWT is included
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Allow registration without authentication
+        'rest_framework.permissions.IsAuthenticated',  # Require authentication by default
     ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Adjust as needed
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 # Social Auth settings
 AUTHENTICATION_BACKENDS = (
-    # Google OAuth2
     'social_core.backends.google.GoogleOAuth2',
-    # Facebook OAuth2
     'social_core.backends.facebook.FacebookOAuth2',
-    # GitHub OAuth2
     'social_core.backends.github.GithubOAuth2',
-    # Django default
     'django.contrib.auth.backends.ModelBackend',
-    # drf-social-oauth2
     'drf_social_oauth2.backends.DjangoOAuth2',
 )
 
@@ -179,12 +180,34 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
+    'auth_app.views.oauth_redirect',
 )
 
 # Social Auth URL configuration
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/auth-success'
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'http://localhost:3000/register-success'
 
-AUTH_USER_MODEL = 'auth_app.User'  # Corrected model reference
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+
+AUTH_USER_MODEL = 'auth_app.User'
 
 APPEND_SLASH = True
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'social_django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}

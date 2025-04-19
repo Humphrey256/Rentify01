@@ -1,45 +1,44 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const UserContext = createContext();
 
-export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-
-  useEffect(() => {
-    if (user && user.token) {
-      localStorage.setItem('user', JSON.stringify(user));
-      axios.defaults.headers.common['Authorization'] = `Token ${user.token}`;
-      console.log('Token set:', user.token); // Log the token when it is set
-    } else {
-      localStorage.removeItem('user');
-      delete axios.defaults.headers.common['Authorization'];
-      console.log('Token removed'); // Log when the token is removed
-    }
-  }, [user]);
-
-  const logout = async () => {
-    try {
-      if (user && user.refresh_token) {
-        await axios.post('http://localhost:8000/api/auth/logout/', { refresh_token: user.refresh_token });
-      }
-      setUser(null);
-      localStorage.removeItem('user');
-      delete axios.defaults.headers.common['Authorization'];
-      console.log('Logged out and token removed'); // Log when the user logs out
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  return (
-    <UserContext.Provider value={{ user, setUser, logout }}>
-      {children}
-    </UserContext.Provider>
-  );
-};
-
 export const useUser = () => useContext(UserContext);
+
+export const UserProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        // Load user data from localStorage on app initialization
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${parsedUser.token}`;
+            console.log('User loaded from localStorage:', parsedUser);
+        } else {
+            console.log('No user found in localStorage');
+        }
+    }, []);
+
+    const handleOAuthLogin = (token, username, role) => {
+        const userData = { token, username, role };
+        setUser(userData);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        console.log('OAuth login successful:', userData);
+    };
+
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        delete axios.defaults.headers.common['Authorization'];
+        console.log('User logged out');
+    };
+
+    return (
+        <UserContext.Provider value={{ user, handleOAuthLogin, logout }}>
+            {children}
+        </UserContext.Provider>
+    );
+};

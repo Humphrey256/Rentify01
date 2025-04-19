@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, login, logout, UserListView, UserDetailView
+from .views import RegisterView, login, logout, UserListView, UserDetailView, oauth_redirect
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),  # Ensure trailing slash
@@ -7,4 +7,5 @@ urlpatterns = [
     path('logout/', logout, name='logout'),  # Ensure trailing slash
     path('users/', UserListView.as_view(), name='user-list'),  # List and create users
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),  # Retrieve, update, and delete users
+    path('oauth-redirect/', oauth_redirect, name='oauth_redirect'),  # Ensure this is correctly mapped
 ]

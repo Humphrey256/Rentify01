@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FaFacebook, FaTwitter, FaInstagram } from 'react-icons/fa'; // Importing social media icons
 
 const Footer = () => {
   return (
@@ -15,9 +16,15 @@ const Footer = () => {
           <Link to="/contact" className="hover:text-yellow-600">Contact</Link>
         </div>
         <div className="flex justify-center space-x-4 mb-4">
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">Facebook</a>
-          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">Twitter</a>
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">Instagram</a>
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">
+            <FaFacebook size={24} />
+          </a>
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">
+            <FaTwitter size={24} />
+          </a>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-600">
+            <FaInstagram size={24} />
+          </a>
         </div>
         <div className="text-gray-400">
           <p>&copy; 2025 Rentify. All rights reserved.</p>

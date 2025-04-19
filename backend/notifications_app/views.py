@@ -5,6 +5,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework import status
 from .models import Notification
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 class NotificationListView(APIView):
     authentication_classes = [TokenAuthentication]  # Ensure token authentication is used
@@ -55,3 +57,13 @@ def mark_all_as_read(request):
     """Mark all unread notifications as read for the current user"""
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return Response({"status": "success"}, status=status.HTTP_200_OK)
+
+class UnreadNotificationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization', '')
+        print(f"Authorization Header: {auth_header}")  # Debug log
+
+        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({'count': unread_notifications}, status=200)

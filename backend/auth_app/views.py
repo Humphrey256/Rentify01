@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token  # Ensure this import is correct
 from rest_framework import generics
 import logging
+from rest_framework_simplejwt.tokens import RefreshToken  # If using JWT for token generation
 
 logger = logging.getLogger(__name__)
 
@@ -93,3 +94,37 @@ class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+def oauth_redirect(backend, user, response, *args, **kwargs):
+    """
+    Custom pipeline function to handle OAuth redirect after successful authentication.
+    """
+    from rest_framework_simplejwt.tokens import RefreshToken
+    from django.shortcuts import redirect
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    # Check if the user is authenticated
+    if not user or not user.is_authenticated:
+        logger.warning("Unauthenticated user attempted OAuth redirect")
+        return redirect('http://localhost:3000/login')  # Redirect to login if user is not authenticated
+
+    try:
+        # Generate a token (using JWT)
+        refresh = RefreshToken.for_user(user)
+        token = str(refresh.access_token)
+
+        # Log the generated token for debugging
+        logger.info(f"Generated token for user {user.username}: {token}")
+
+        # Determine the user's role
+        role = 'admin' if user.is_staff else 'user'
+
+        logger.info(f"OAuth redirect successful for user: {user.username}, role: {role}, token: {token}")
+
+        # Redirect to the frontend with token, username, and role as query parameters
+        return redirect(f'http://localhost:3000/auth-success?token={token}&username={user.username}&role={role}')
+    except Exception as e:
+        logger.error(f"OAuth redirect error: {str(e)}")
+        return redirect('http://localhost:3000/login')  # Redirect to login on error
