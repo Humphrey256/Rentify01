@@ -9,7 +9,6 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 class NotificationListView(APIView):
-    authentication_classes = [TokenAuthentication]  # Ensure token authentication is used
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -19,11 +18,11 @@ class NotificationListView(APIView):
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         data = [
             {
-                "id": n.id, 
+                "id": n.id,
                 "message": n.message,
                 "is_read": n.is_read,
                 "created_at": n.created_at
-            } 
+            }
             for n in notifications
         ]
         return Response(data, status=status.HTTP_200_OK)
@@ -47,14 +46,18 @@ class NotificationListView(APIView):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def unread_notification_count(request):
-    """Get count of unread notifications for the current user"""
+    """
+    Get count of unread notifications for the current user.
+    """
     count = Notification.objects.filter(user=request.user, is_read=False).count()
-    return Response({"count": count})
+    return Response({"count": count}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_all_as_read(request):
-    """Mark all unread notifications as read for the current user"""
+    """
+    Mark all unread notifications as read for the current user.
+    """
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return Response({"status": "success"}, status=status.HTTP_200_OK)
 
@@ -62,8 +65,33 @@ class UnreadNotificationsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        auth_header = request.headers.get('Authorization', '')
-        print(f"Authorization Header: {auth_header}")  # Debug log
+        """
+        Retrieve the count of unread notifications for the authenticated user.
+        """
+        try:
+            # Fetch unread notifications count for the authenticated user
+            unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+            return Response({'count': unread_count}, status=200)
 
-        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
-        return Response({'count': unread_notifications}, status=200)
+        except Exception as e:
+            # Log unexpected errors
+            print(f"Error fetching unread notifications: {str(e)}")
+            return Response({'detail': 'An error occurred while fetching unread notifications.'}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notifications(request):
+    """
+    Retrieve all notifications for the authenticated user.
+    """
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    data = [
+        {
+            "id": n.id,
+            "message": n.message,
+            "is_read": n.is_read,
+            "created_at": n.created_at,
+        }
+        for n in notifications
+    ]
+    return Response(data, status=200)

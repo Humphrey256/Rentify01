@@ -16,45 +16,45 @@ const Navbar = () => {
   // Fetch unread notifications count
   const fetchUnreadNotifications = async () => {
     if (user && user.token) {
-        console.log('Using token for notifications:', user.token); // Debug log
-        try {
-            const res = await axios.get('http://localhost:8000/api/notifications/unread/', {
-                headers: { Authorization: `Bearer ${user.token}` },
-            });
-            setUnreadNotifications(res.data.count);
-            console.log('Unread notifications fetched:', res.data.count);
-        } catch (err) {
-            if (err.response?.status === 401) {
-                console.log('Token expired. Attempting to refresh...');
-                const newToken = await refreshAccessToken();
-                if (newToken) {
-                    user.token = newToken; // Update user token
-                    fetchUnreadNotifications(); // Retry the request
-                } else {
-                    console.error('Failed to refresh token. Logging out...');
-                    logout();
-                    navigate('/login');
-                }
-            } else {
-                console.error('Error fetching unread notifications:', err.response?.data || err.message);
-            }
-        }
-    }
-};
-
-const refreshAccessToken = async () => {
-    try {
-        const res = await axios.post('http://localhost:8000/api/token/refresh/', {
-            refresh: localStorage.getItem('refreshToken'), // Use refresh token from localStorage
+      console.log('Using token for notifications:', user.token); // Debug log
+      try {
+        const res = await axios.get('http://localhost:8000/api/notifications/unread/', {
+          headers: { Authorization: `Bearer ${user.token}` },
         });
-        const newAccessToken = res.data.access;
-        localStorage.setItem('accessToken', newAccessToken); // Update localStorage
-        return newAccessToken;
-    } catch (err) {
-        console.error('Error refreshing token:', err.response?.data || err.message);
-        return null;
+        setUnreadNotifications(res.data.count);
+        console.log('Unread notifications fetched:', res.data.count);
+      } catch (err) {
+        if (err.response?.status === 401) {
+          console.log('Token expired. Attempting to refresh...');
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            user.token = newToken; // Update user token
+            fetchUnreadNotifications(); // Retry the request
+          } else {
+            console.error('Failed to refresh token. Logging out...');
+            logout();
+            navigate('/login');
+          }
+        } else {
+          console.error('Error fetching unread notifications:', err.response?.data || err.message);
+        }
+      }
     }
-};
+  };
+
+  const refreshAccessToken = async () => {
+    try {
+      const res = await axios.post('http://localhost:8000/api/token/refresh/', {
+        refresh: localStorage.getItem('refreshToken'), // Use refresh token from localStorage
+      });
+      const newAccessToken = res.data.access;
+      localStorage.setItem('accessToken', newAccessToken); // Update localStorage
+      return newAccessToken;
+    } catch (err) {
+      console.error('Error refreshing token:', err.response?.data || err.message);
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (!user || !user.token) return;
@@ -68,11 +68,40 @@ const refreshAccessToken = async () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      const refreshToken = localStorage.getItem('refreshToken'); // Correct key
+      const accessToken = localStorage.getItem('accessToken'); // Correct key
+
+      if (!refreshToken || !accessToken) {
+        console.error('No tokens found');
+        logout(); // Clear user context
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.post(
+        'http://localhost:8000/api/auth/logout/',
+        { refresh: refreshToken },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      console.log('Logout successful:', response.data);
+
+      // Clear tokens and user context
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      logout(); // Call context logout
+      navigate('/login'); // Redirect to login page
+    } catch (error) {
+      console.error('Error during logout:', error.response?.data || error.message);
+      // Still clear tokens if logout request fails (optional but safer)
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      logout();
       navigate('/login');
-      console.log('User logged out successfully');
-    } catch (err) {
-      console.error('Error during logout:', err.message);
     }
   };
 

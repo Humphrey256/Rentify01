@@ -1,11 +1,13 @@
 from django.urls import path
-from .views import RegisterView, login, logout, UserListView, UserDetailView, oauth_redirect
+from .views import register, login, logout, UserListView, UserDetailView, oauth_redirect
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),  # Ensure trailing slash
-    path('login/', login, name='login'),  # Ensure trailing slash
-    path('logout/', logout, name='logout'),  # Ensure trailing slash
-    path('users/', UserListView.as_view(), name='user-list'),  # List and create users
-    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),  # Retrieve, update, and delete users
-    path('oauth-redirect/', oauth_redirect, name='oauth_redirect'),  # Ensure this is correctly mapped
+    path('register/', register, name='register'),
+    path('login/', login, name='login'),
+    path('logout/', logout, name='logout'),  # Ensure this is defined
+    path('users/', UserListView.as_view(), name='user-list'),
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
+    path('oauth-redirect/', oauth_redirect, name='oauth_redirect'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

@@ -16,14 +16,68 @@ const Sidebar = () => {
   // Fetch unread notifications count
   const fetchUnreadNotifications = async () => {
     if (user && user.token) {
+      console.log('Using token for notifications:', user.token); // Debug log
       try {
         const res = await axios.get('http://localhost:8000/api/notifications/unread/', {
-          headers: { Authorization: `Token ${user.token}` },
+          headers: { Authorization: `Bearer ${user.token}` },
         });
         setUnreadNotifications(res.data.count);
+        console.log('Unread notifications fetched:', res.data.count);
       } catch (err) {
-        console.error('Error fetching unread notifications:', err);
+        console.error('Error fetching unread notifications:', err.response?.data || err.message);
       }
+    }
+  };
+
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.error('No access token found');
+      return;
+    }
+
+    try {
+      const response = await axios.get('http://localhost:8000/api/notifications/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Notifications fetched:', response.data);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        console.log('Access token expired. Attempting to refresh...');
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          return fetchNotifications(); // Retry the request with the new token
+        } else {
+          console.error('Failed to refresh token. Logging out...');
+          // Handle logout if token refresh fails
+        }
+      } else {
+        console.error('Error fetching notifications:', error.response?.data || error.message);
+      }
+    }
+  };
+
+  const refreshAccessToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken'); // Retrieve refresh token from localStorage
+      if (!refreshToken) {
+        console.error('No refresh token found');
+        return null;
+      }
+
+      const response = await axios.post('http://localhost:8000/api/token/refresh/', {
+        refresh: refreshToken,
+      });
+
+      const newAccessToken = response.data.access;
+      localStorage.setItem('accessToken', newAccessToken); // Update access token in localStorage
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+      return newAccessToken;
+    } catch (error) {
+      console.error('Error refreshing token:', error.response?.data || error.message);
+      return null;
     }
   };
 
@@ -69,11 +123,9 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed h-screen bg-gray-900 text-white flex flex-col shadow-xl ${
-          isCollapsed ? 'w-16' : 'w-48'
-        } transition-all duration-300 z-10 ${
-          isMobileMenuOpen ? 'block' : 'hidden'
-        } lg:block`}
+        className={`fixed h-screen bg-gray-900 text-white flex flex-col shadow-xl ${isCollapsed ? 'w-16' : 'w-48'
+          } transition-all duration-300 z-10 ${isMobileMenuOpen ? 'block' : 'hidden'
+          } lg:block`}
         style={{
           top: '4rem', // Push the sidebar down below the navbar (adjust '4rem' to match your navbar height)
           height: 'calc(100vh - 4rem)', // Ensure the sidebar fits within the remaining viewport
@@ -103,33 +155,29 @@ const Sidebar = () => {
         <nav className="flex flex-col gap-3">
           <Link
             to="/"
-            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-              location.pathname === '/' ? 'bg-gray-800' : ''
-            }`}
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/' ? 'bg-gray-800' : ''
+              }`}
           >
             <Home size={22} className="text-teal-400" /> {!isCollapsed && <span>Home</span>}
           </Link>
           <Link
             to="/products"
-            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-              location.pathname === '/products' ? 'bg-gray-800' : ''
-            }`}
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/products' ? 'bg-gray-800' : ''
+              }`}
           >
             <Box size={22} className="text-red-400" /> {!isCollapsed && <span>Products</span>}
           </Link>
           <Link
             to="/categories"
-            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-              location.pathname === '/categories' ? 'bg-gray-800' : ''
-            }`}
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/categories' ? 'bg-gray-800' : ''
+              }`}
           >
             <List size={22} className="text-blue-400" /> {!isCollapsed && <span>Categories</span>}
           </Link>
           <Link
             to="/notifications"
-            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-              isNotificationsPage ? 'bg-gray-800' : ''
-            }`}
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${isNotificationsPage ? 'bg-gray-800' : ''
+              }`}
           >
             <div className="relative">
               <Bell size={22} className="text-yellow-400" />
@@ -148,18 +196,16 @@ const Sidebar = () => {
           </Link>
           <Link
             to="/settings"
-            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-              location.pathname === '/settings' ? 'bg-gray-800' : ''
-            }`}
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/settings' ? 'bg-gray-800' : ''
+              }`}
           >
             <Settings size={22} className="text-purple-400" /> {!isCollapsed && <span>Settings</span>}
           </Link>
           {user.role === 'admin' && (
             <Link
               to="/add-product"
-              className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${
-                location.pathname === '/add-product' ? 'bg-gray-800' : ''
-              }`}
+              className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/add-product' ? 'bg-gray-800' : ''
+                }`}
             >
               <PlusCircle size={22} className="text-green-400" /> {!isCollapsed && <span>Add Product</span>}
             </Link>
