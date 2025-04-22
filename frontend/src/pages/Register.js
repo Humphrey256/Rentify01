@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react'; // Importing icons for show/hide password
 import { ToastContainer, toast } from 'react-toastify';
@@ -55,7 +55,7 @@ const Register = () => {
 
     try {
       await axios.post('http://localhost:8000/api/auth/register/', formData); // Updated endpoint with trailing slash
-      toast.success('Account created successfully!');
+      toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {
       console.error('Registration failed:', error);
@@ -124,6 +124,11 @@ const Register = () => {
             Register
           </button>
         </form>
+
+        <div className="text-center mb-4">
+          <span className="text-gray-600">Already have an account? </span>
+          <Link to="/login" className="text-blue-500 hover:underline">Login</Link>
+        </div>
 
         <div className="relative flex items-center justify-center w-full mt-6 mb-3">
           <div className="absolute border-t border-gray-300 w-full"></div>

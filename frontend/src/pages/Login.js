@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react'; // Importing icons for show/hide password
@@ -42,11 +42,15 @@ const Login = () => {
       const response = await axios.post('http://localhost:8000/api/auth/login/', { username, password });
       console.log('Login response:', response.data); // Log the response data
 
-      const { id, username: userUsername, email, role, token } = response.data;
+      const { id, username: userUsername, email, role, token, refresh } = response.data;
       const userData = { id, username: userUsername, email, role, token };
 
       setUser(userData); // Update user context
       localStorage.setItem('user', JSON.stringify(userData)); // Save user to localStorage
+      localStorage.setItem('accessToken', token);
+      if (refresh) {
+        localStorage.setItem('refreshToken', refresh);
+      }
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       toast.success('Login successful!');
@@ -110,6 +114,11 @@ const Login = () => {
             Login
           </button>
         </form>
+
+        <div className="text-center mb-4">
+          <span className="text-gray-600">Don't have an account? </span>
+          <Link to="/register" className="text-blue-500 hover:underline">Register</Link>
+        </div>
 
         <div className="relative flex items-center justify-center w-full mt-6 mb-3">
           <div className="absolute border-t border-gray-300 w-full"></div>

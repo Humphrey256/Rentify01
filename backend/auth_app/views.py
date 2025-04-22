@@ -119,9 +119,13 @@ def oauth_redirect(backend, user, response, *args, **kwargs):
         return redirect('http://localhost:3000/login')
 
     try:
+        # Always assign 'user' role for OAuth logins
+        user.role = 'user'
+        user.save()
+
         refresh = RefreshToken.for_user(user)
         token = str(refresh.access_token)
-        role = 'admin' if user.is_staff else 'user'
+        role = user.role
 
         logger.info(f"OAuth redirect successful for user: {user.username}, role: {role}, token: {token}")
 

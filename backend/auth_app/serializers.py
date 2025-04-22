@@ -2,12 +2,14 @@ from rest_framework import serializers
 from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='get_role_display', read_only=True)  # Ensure role is always serialized as a string
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'role']
         extra_kwargs = {
-            'password': {'write_only': True},  # Make password write-only
-            'username': {'required': False},  # Make username not required
+            'password': {'write_only': True},
+            'username': {'required': False},
         }
 
     def create(self, validated_data):
