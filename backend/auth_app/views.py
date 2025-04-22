@@ -8,6 +8,15 @@ from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 import logging
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env
+
+INSTAGRAM_CLIENT_ID = os.environ.get('INSTAGRAM_CLIENT_ID')
+INSTAGRAM_CLIENT_SECRET = os.environ.get('INSTAGRAM_CLIENT_SECRET')
+REDIRECT_URI = os.environ.get('INSTAGRAM_REDIRECT_URI', 'http://localhost:3000/instagram-auth')
 
 logger = logging.getLogger(__name__)
 
@@ -141,3 +150,27 @@ def unread_notifications(request):
     # Assuming you have a Notification model with a `read` field
     unread_count = Notification.objects.filter(user=user, read=False).count()
     return Response({"count": unread_count}, status=200)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def instagram_exchange(request):
+    code = request.data.get('code')
+    if not code:
+        return Response({'error': 'Missing code'}, status=400)
+
+    token_url = 'https://api.instagram.com/oauth/access_token'
+    data = {
+        'client_id': INSTAGRAM_CLIENT_ID,
+        'client_secret': INSTAGRAM_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'redirect_uri': REDIRECT_URI,
+        'code': code,
+    }
+    resp = requests.post(token_url, data=data)
+    if resp.status_code != 200:
+        return Response({'error': 'Failed to get access token', 'details': resp.json()}, status=400)
+
+    access_data = resp.json()
+    # Optionally, save access_data['access_token'] to the user's profile here
+
+    return Response({'access_token': access_data.get('access_token'), 'user_id': access_data.get('user_id')})

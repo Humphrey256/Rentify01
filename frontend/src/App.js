@@ -20,6 +20,7 @@ import SuccessPage from './pages/SuccessPage'; // Updated import
 import Cancel from './pages/Cancel';
 import ReviewForm from './pages/ReviewForm';
 import AuthSuccess from './pages/AuthSuccess'; // New import
+import InstagramAuth from './pages/InstagramAuth'; // Import the new InstagramAuth page
 import { UserProvider, useUser } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
 
@@ -67,6 +68,7 @@ const App = () => {
                 <Route path="/cancel" element={<Cancel />} />
                 <Route path="/review/:rentalId" element={<ReviewForm />} />
                 <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route */}
+                <Route path="/instagram-auth" element={<InstagramAuth />} /> {/* Instagram OAuth redirect handler */}
               </Routes>
             </AppLayout>
           </div>
