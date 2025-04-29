@@ -6,10 +6,17 @@ const isProd = process.env.NODE_ENV === 'production';
 const API_URL = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
 const MEDIA_URL = isProd ? 'https://rentify01-1.onrender.com/media' : '/media';
 
+// Track backend status to prevent excessive retries
+let backendStatus = {
+  lastAttempt: null,
+  attemptCount: 0,
+  isSpinningUp: false
+};
+
 // Create axios instance with custom configuration
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000, // Increased timeout to 30 seconds to allow for Render spin-up
+  timeout: 30000, // 30 seconds timeout to allow for Render spin-up
   headers: {
     'Content-Type': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
@@ -27,16 +34,32 @@ api.interceptors.request.use(config => {
 
 // Add response interceptor for better error handling
 api.interceptors.response.use(
-  response => response,
+  response => {
+    // Reset backend status on successful response
+    backendStatus = {
+      lastAttempt: new Date(),
+      attemptCount: 0,
+      isSpinningUp: false
+    };
+    return response;
+  },
   error => {
     // Log the error for debugging
     console.error('API Error:', error.message);
+    
+    // Track backend status
+    backendStatus.lastAttempt = new Date();
+    backendStatus.attemptCount += 1;
     
     // Create a more user-friendly error message
     if (error.message === 'Network Error') {
       error.userMessage = 'Unable to connect to the server. Please check your internet connection or disable ad blockers that might be interfering with the request.';
     } else if (error.response && error.response.status === 504) {
-      error.userMessage = 'The server is taking too long to respond. This might be because the server is spinning up after inactivity. Please try again in a moment.';
+      backendStatus.isSpinningUp = true;
+      
+      // Special message for Render's 504 Gateway Timeout
+      error.userMessage = 'The server is taking longer than expected to respond. This is normal for our free hosting plan after periods of inactivity. The app will automatically use sample data while the server starts up (this may take 1-2 minutes).';
+      error.isRenderSpinUp = true;
     } else if (error.response) {
       // The request was made and the server responded with a status code outside of 2xx
       error.userMessage = `Server error: ${error.response.status}`;
@@ -55,6 +78,12 @@ api.interceptors.response.use(
 // Helper function to get image URLs
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '/placeholder-image.jpg';
+  
+  // Handle fallback sample images
+  if (imagePath.includes('sample-')) {
+    return `/placeholder-image.jpg`;
+  }
+  
   return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
 };
 
@@ -63,7 +92,22 @@ const getImageUrl = (imagePath) => {
  * Useful for Render's free tier which may need time to spin up
  */
 const requestWithRetry = async (method, url, data = null, options = {}) => {
-  const { retries = 2, retryDelay = 3000 } = options;
+  const { 
+    retries = 2, 
+    retryDelay = 5000, 
+    useFallback = false,
+    fallbackData = null,
+    onRetry = null 
+  } = options;
+  
+  // If too many recent failures and fallback is available, use it immediately
+  const recentFailures = backendStatus.attemptCount > 3 && 
+    (new Date() - backendStatus.lastAttempt) < 60000;
+    
+  if (useFallback && fallbackData && recentFailures) {
+    console.log('Using fallback data immediately due to recent failures');
+    return { data: fallbackData, isFallback: true };
+  }
   
   try {
     if (method === 'get') {
@@ -84,6 +128,11 @@ const requestWithRetry = async (method, url, data = null, options = {}) => {
          retries > 0) {
       console.log(`Request failed, retrying... (${retries} retries left)`);
       
+      // Call the onRetry callback if provided
+      if (typeof onRetry === 'function') {
+        onRetry(error);
+      }
+      
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, retryDelay));
       
@@ -95,9 +144,15 @@ const requestWithRetry = async (method, url, data = null, options = {}) => {
       });
     }
     
+    // If we're out of retries and have fallback data, use it
+    if (useFallback && fallbackData) {
+      console.log('Using fallback data after retries failed');
+      return { data: fallbackData, isFallback: true };
+    }
+    
     throw error;
   }
 };
 
-export { API_URL, getImageUrl, requestWithRetry };
+export { API_URL, getImageUrl, requestWithRetry, backendStatus };
 export default api;

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import api, { getImageUrl, requestWithRetry } from '../api/config';
+import api, { getImageUrl, requestWithRetry, backendStatus } from '../api/config';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { fallbackProducts } from '../data/fallbackData';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -11,36 +12,72 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [spinningUp, setSpinningUp] = useState(false);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Fetch products from the API with retry mechanism
-  const fetchProducts = useCallback(async () => {
-    try {
+  // Set up auto-refresh if using fallback data
+  useEffect(() => {
+    let refreshTimer;
+    if (usingFallbackData) {
+      // Try to fetch real data every 30 seconds while showing fallback data
+      refreshTimer = setInterval(() => {
+        console.log('Attempting to fetch real data after using fallback...');
+        fetchProducts(true);
+      }, 30000);
+    }
+    
+    return () => {
+      if (refreshTimer) clearInterval(refreshTimer);
+    };
+  }, [usingFallbackData]);
+
+  // Fetch products from the API with retry and fallback mechanism
+  const fetchProducts = useCallback(async (silent = false) => {
+    if (!silent) {
       setLoading(true);
       setSpinningUp(false);
-      
-      // Use the requestWithRetry function instead of direct API call
+    }
+    
+    try {
+      // Use the requestWithRetry function with fallback data
       const response = await requestWithRetry('get', '/api/rentals/', null, {
-        retries: 3,
-        retryDelay: 3000,
+        retries: 2,
+        retryDelay: 5000,
+        useFallback: true,
+        fallbackData: fallbackProducts,
         onRetry: () => {
           setSpinningUp(true);
         }
       });
       
+      if (response.isFallback) {
+        console.log('Using fallback product data');
+        setUsingFallbackData(true);
+        toast.info('Using sample data while the server starts up. Data will refresh automatically.', {
+          toastId: 'fallback-notice',
+          autoClose: 10000
+        });
+      } else {
+        setUsingFallbackData(false);
+      }
+      
       setProducts(response.data);
       setError(null);
     } catch (error) {
       console.error('Error fetching products:', error);
-      setError(error.userMessage || 'Failed to load products. Please try again later.');
-      toast.error(error.userMessage || 'Failed to load products');
+      if (!silent) {
+        setError(error.userMessage || 'Failed to load products. Please try again later.');
+        toast.error(error.userMessage || 'Failed to load products');
+      }
     } finally {
-      setLoading(false);
-      setSpinningUp(false);
+      if (!silent) {
+        setLoading(false);
+        setSpinningUp(false);
+      }
     }
   }, []);
 
@@ -49,6 +86,13 @@ const Products = () => {
   }, [fetchProducts]);
 
   const handleRentNow = (productId) => {
+    if (usingFallbackData) {
+      toast.info('This is sample data. Real booking will be available when the server finishes starting up.', {
+        toastId: 'fallback-booking'
+      });
+      return;
+    }
+    
     if (!user) {
       navigate('/login');
     } else {
@@ -57,6 +101,13 @@ const Products = () => {
   };
 
   const toggleAvailability = async (productId, currentStatus) => {
+    if (usingFallbackData) {
+      toast.info('This is sample data. Admin functions will be available when the server finishes starting up.', {
+        toastId: 'fallback-admin'
+      });
+      return;
+    }
+    
     if (!user || user.role !== 'admin') return;
 
     setIsUpdating(true);
@@ -120,6 +171,32 @@ const Products = () => {
     <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-2 md:ml-15 lg:ml-30 relative z-0">
       <h1 className="text-3xl font-bold mb-6 text-center">Available Products</h1>
 
+      {/* Fallback data notice banner */}
+      {usingFallbackData && (
+        <div className="mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+          <div className="flex">
+            <div className="py-1">
+              <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="font-medium">Sample Data Mode</p>
+              <p className="text-sm">
+                The server is currently starting up. You're viewing sample data. 
+                The app will automatically refresh with real data once the server is ready.
+              </p>
+              <button 
+                onClick={() => fetchProducts()} 
+                className="mt-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-3 rounded"
+              >
+                Try Refresh Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and filter controls */}
       <div className="flex justify-center mb-6">
         <input
@@ -148,21 +225,27 @@ const Products = () => {
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-yellow-600 mb-4"></div>
           <p className="text-xl">
             {spinningUp ? 
-              'Our server is starting up after inactivity. This may take up to 30 seconds...' : 
+              'Our server is starting up after inactivity. This may take up to 2 minutes...' : 
               'Loading products...'}
           </p>
+          {spinningUp && (
+            <p className="mt-2 text-gray-600">
+              Free hosting plans take longer to spin up after periods of inactivity.
+              Sample data will be displayed shortly if the server takes too long.
+            </p>
+          )}
         </div>
       )}
       
       {/* Error state with retry button */}
-      {error && !loading && (
+      {error && !loading && !usingFallbackData && (
         <div className="text-center text-red-500 mb-8 p-6 bg-red-50 rounded-lg border border-red-200">
           <p className="text-lg mb-4">{error}</p>
           <p className="mb-4 text-gray-700">
             If this is your first time visiting in a while, the server may need a moment to start up.
           </p>
           <button 
-            onClick={fetchProducts} 
+            onClick={() => fetchProducts()} 
             className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
           >
             Try Again
@@ -207,7 +290,7 @@ const Products = () => {
                     : 'bg-green-500 text-white hover:bg-green-600'
                     }`}
                   onClick={() => toggleAvailability(product.id, product.is_available)}
-                  disabled={isUpdating}
+                  disabled={isUpdating || usingFallbackData}
                 >
                   {isUpdating ? 'Updating...' : product.is_available ? 'Mark as Unavailable' : 'Make Available'}
                 </button>
@@ -221,9 +304,10 @@ const Products = () => {
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   onClick={() => product.is_available && handleRentNow(product.id)}
-                  disabled={!product.is_available}
+                  disabled={!product.is_available || usingFallbackData}
                 >
-                  {product.is_available ? 'Rent Now' : 'Not Available'}
+                  {usingFallbackData ? 'Server Starting Up...' : 
+                    (product.is_available ? 'Rent Now' : 'Not Available')}
                 </button>
               )}
             </div>
@@ -246,6 +330,11 @@ const Products = () => {
             </button>
 
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
+            {usingFallbackData && (
+              <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 rounded text-sm">
+                You're viewing sample data while the server starts up.
+              </div>
+            )}
             <img
               src={getImageUrl(activeProduct.image)}
               alt={activeProduct.name || 'Product Image'}
@@ -260,10 +349,13 @@ const Products = () => {
 
             {activeProduct.is_available ? (
               <button
-                className="bg-yellow-600 text-white px-4 py-2 rounded mt-4 hover:bg-yellow-700 w-full"
+                className={`bg-yellow-600 text-white px-4 py-2 rounded mt-4 hover:bg-yellow-700 w-full ${
+                  usingFallbackData ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
                 onClick={() => handleRentNow(activeProduct.id)}
+                disabled={usingFallbackData}
               >
-                Rent Now
+                {usingFallbackData ? 'Server Starting Up...' : 'Rent Now'}
               </button>
             ) : (
               <p className="text-red-600 text-center mt-4">This product is currently unavailable.</p>
