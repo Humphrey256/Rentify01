@@ -17,7 +17,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # Update ALLOWED_HOSTS to include Render domain
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,rentify01-1.onrender.com').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,rentify01-yfnu.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -148,7 +148,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://10.10.162.38:3000',  # Adding your frontend IP address
-    'https://your-production-domain.com',
+    'https://rentify01-yfnu.onrender.com',  # Render frontend domain
+]
+
+# Make sure CSRF works with Render domain
+CSRF_TRUSTED_ORIGINS = [
+    'https://rentify01-yfnu.onrender.com',
 ]
 
 # Django REST framework settings
@@ -211,15 +216,22 @@ SOCIAL_AUTH_PIPELINE = (
     'auth_app.views.oauth_redirect',
 )
 
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/auth-success'
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login'
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'http://localhost:3000/register-success'
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/auth-success'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://rentify01-yfnu.onrender.com/login'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/register-success'
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Set to True for production
 
 AUTH_USER_MODEL = 'auth_app.User'
 
 APPEND_SLASH = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# Update for Heroku/Render hosting
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = not DEBUG  # Redirect all HTTP to HTTPS in production
+SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure CSRF cookies in production
 
 # Logging for debugging
 LOGGING = {
