@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
+import API_URL from '../api/config'; // Import API URL configuration
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [activeProduct, setActiveProduct] = useState(null);
+  const [loading, setLoading] = useState(true); // Add loading state
+  const [error, setError] = useState(null); // Add error state
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,17 +20,28 @@ const Products = () => {
   // Fetch products from the API
   const fetchProducts = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/rentals/');
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/api/rentals/`);
       setProducts(response.data);
+      setError(null);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setError('Failed to load products. Please try again later.');
       toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Helper function for image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return `${API_URL}/media/default-placeholder.png`;
+    return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
+  };
 
   const handleRentNow = (productId) => {
     if (!user) {
@@ -43,7 +57,7 @@ const Products = () => {
     setIsUpdating(true);
     try {
       const response = await axios.patch(
-        `http://localhost:8000/api/rentals/${productId}/`,
+        `${API_URL}/api/rentals/${productId}/`,
         { is_available: !currentStatus },
         { headers: { Authorization: `Token ${user.token}` } }
       );
@@ -96,6 +110,7 @@ const Products = () => {
     <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-2 md:ml-15 lg:ml-30 relative z-0">
       <h1 className="text-3xl font-bold mb-6 text-center">Available Products</h1>
 
+      {/* Search and filter controls */}
       <div className="flex justify-center mb-6">
         <input
           type="text"
@@ -116,7 +131,16 @@ const Products = () => {
           <option value="machine">Machine</option>
         </select>
       </div>
-      {filteredProducts.length === 0 ? (
+
+      {/* Loading and error states */}
+      {loading && <p className="text-center">Loading products...</p>}
+      
+      {error && !loading && (
+        <div className="text-center text-red-500 mb-4">{error}</div>
+      )}
+
+      {/* Product grid */}
+      {!loading && !error && filteredProducts.length === 0 ? (
         <p className="text-center text-lg">No available products</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -126,9 +150,13 @@ const Products = () => {
               className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative"
             >
               <img
-                src={product.image || 'http://localhost:8000/media/default-placeholder.png'}
+                src={getImageUrl(product.image)}
                 alt={product.name || 'Product Image'}
                 className="w-full h-48 object-cover mb-4 rounded-lg"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `${API_URL}/media/default-placeholder.png`;
+                }}
               />
               <h2 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h2>
               <p className="font-bold text-lg mt-2">${product.price}/day</p>
@@ -140,6 +168,7 @@ const Products = () => {
                 View Details
               </button>
 
+              {/* Admin controls */}
               {user?.role === 'admin' && (
                 <button
                   className={`p-2 mt-2 w-full rounded ${product.is_available
@@ -153,6 +182,7 @@ const Products = () => {
                 </button>
               )}
 
+              {/* User rent button */}
               {user?.role !== 'admin' && (
                 <button
                   className={`p-2 mt-4 w-full rounded ${product.is_available
@@ -169,13 +199,14 @@ const Products = () => {
           ))}
         </div>
       )}
+
+      {/* Product detail modal */}
       {activeProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50">
           <div
             className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto"
-            style={{ marginTop: '5rem', maxHeight: 'calc(100vh - 8rem)' }} // Adjust '5rem' for navbar height
+            style={{ marginTop: '5rem', maxHeight: 'calc(100vh - 8rem)' }}
           >
-            {/* Close Button */}
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setActiveProduct(null)}
@@ -183,17 +214,19 @@ const Products = () => {
               &times;
             </button>
 
-            {/* Product Details */}
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              src={getImageUrl(activeProduct.image)}
               alt={activeProduct.name || 'Product Image'}
               className="w-full h-auto object-contain mb-4 rounded-lg"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `${API_URL}/media/default-placeholder.png`;
+              }}
             />
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
 
-            {/* Rent Now Button */}
             {activeProduct.is_available ? (
               <button
                 className="bg-yellow-600 text-white px-4 py-2 rounded mt-4 hover:bg-yellow-700 w-full"
@@ -210,7 +243,7 @@ const Products = () => {
       <ToastContainer
         position="top-right"
         autoClose={3000}
-        style={{ zIndex: 99999, marginTop: '4rem' }} // Adjust '4rem' to match your navbar height
+        style={{ zIndex: 99999, marginTop: '4rem' }}
       />
     </div>
   );
