@@ -9,3 +9,4 @@ django-oauth-toolkit==2.3.0
 drf-social-oauth2==1.2.0
 psycopg2-binary==2.9.9  # PostgreSQL adapter
 dj-database-url==2.1.0  # For database URL parsing
+gunicorn==21.2.0  # Production WSGI HTTP server
