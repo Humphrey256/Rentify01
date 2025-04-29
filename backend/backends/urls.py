@@ -15,7 +15,7 @@ urlpatterns = [
     # Social auth URLs - moved before API routes for priority
     path('auth/', include('auth_app.urls')),  # Your custom auth app
     path('social-auth/', include('social_django.urls', namespace='social')),  # Add this line
-    path('oauth/', include('drf_social_oauth2.urls', namespace='oauth2')),  # For DRF Social OAuth2
+    # path('oauth/', include('drf_social_oauth2.urls', namespace='oauth2')),  # Temporarily commented out
     
     # API routes
     path('api/auth/', include('auth_app.urls')),  # API endpoints for auth

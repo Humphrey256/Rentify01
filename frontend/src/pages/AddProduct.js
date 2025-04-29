@@ -56,10 +56,12 @@ const AddProduct = () => {
         console.log(pair[0] + ': ' + pair[1]);
       }
 
+      const token = localStorage.getItem('accessToken');
+      
       await axios.post('http://localhost:8000/api/rentals/', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${user.token}`, // Include the authentication token
+          'Authorization': `Bearer ${token}`
         },
       });
 

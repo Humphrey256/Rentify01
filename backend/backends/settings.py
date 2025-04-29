@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'oauth2_provider',
     'social_django',
-    'drf_social_oauth2',
+    # 'drf_social_oauth2',  # Temporarily commented out
     'rest_framework_simplejwt.token_blacklist',
 
     # Local apps
@@ -115,6 +115,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://10.10.162.38:3000',  # Adding your frontend IP address
     'https://your-production-domain.com',
 ]
 
@@ -147,7 +148,7 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-    'drf_social_oauth2.backends.DjangoOAuth2',
+    # 'drf_social_oauth2.backends.DjangoOAuth2',  # Temporarily commented out
 )
 
 # OAuth credentials
