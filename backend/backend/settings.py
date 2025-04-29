@@ -149,11 +149,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://10.10.162.38:3000',  # Adding your frontend IP address
     'https://rentify01-yfnu.onrender.com',  # Render frontend domain
+    'https://rentify01-1.onrender.com',  # Additional Render domain
 ]
 
 # Make sure CSRF works with Render domain
 CSRF_TRUSTED_ORIGINS = [
     'https://rentify01-yfnu.onrender.com',
+    'https://rentify01-1.onrender.com',
 ]
 
 # Django REST framework settings
