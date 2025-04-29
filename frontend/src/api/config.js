@@ -1,10 +1,15 @@
 import axios from 'axios';
 
-// In development, we use relative URLs which get proxied through the React dev server
-// In production, we continue using the full URL
 const isProd = process.env.NODE_ENV === 'production';
-const API_URL = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
-const MEDIA_URL = isProd ? 'https://rentify01-yfnu.onrender.com/media' : '/media'; // Updated to use the same domain
+
+// Use HTTP and port 8000 for local development, production URL for prod
+const API_URL = isProd
+  ? 'https://rentify01-yfnu.onrender.com'
+  : 'http://localhost:8000';
+
+const MEDIA_URL = isProd
+  ? 'https://rentify01-yfnu.onrender.com/media'
+  : 'http://localhost:8000/media';
 
 // Track backend status to prevent excessive retries
 let backendStatus = {
@@ -23,9 +28,17 @@ const api = axios.create({
   }
 });
 
-// Add request interceptor for debugging
+// Add request interceptor for debugging and protocol fixing
 api.interceptors.request.use(config => {
   console.log(`Making request to: ${config.url}`);
+  
+  // Force HTTP for localhost requests to prevent SSL errors
+  if (!isProd && config.url && config.url.includes('localhost')) {
+    const url = new URL(config.url);
+    url.protocol = 'http:';
+    config.url = url.toString();
+  }
+  
   return config;
 }, error => {
   console.error('Request error:', error);
@@ -90,14 +103,12 @@ api.interceptors.response.use(
 // Helper function to get image URLs
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '/placeholder-image.jpg';
-  
-  // Handle fallback sample images
-  if (imagePath.includes('sample-')) {
-    return `/placeholder-image.jpg`;
+  if (imagePath.includes('sample-')) return '/placeholder-image.jpg';
+  if (isProd) {
+    return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
+  } else {
+    return `http://localhost:8000/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
   }
-  
-  // Use a single domain for all requests to avoid cross-origin issues
-  return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
 };
 
 /**
@@ -171,5 +182,5 @@ const requestWithRetry = async (method, url, data = null, options = {}) => {
   }
 };
 
-export { API_URL, getImageUrl, requestWithRetry, backendStatus };
+export { API_URL, MEDIA_URL, getImageUrl, requestWithRetry, backendStatus };
 export default api;

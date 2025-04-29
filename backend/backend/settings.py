@@ -6,11 +6,39 @@ from django.core.servers.basehttp import WSGIServer
 import logging
 from datetime import timedelta
 import dj_database_url
+from django.http import HttpResponseRedirect
 
 # Configure logging at the top to catch early issues
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('django')
 logger.info("Starting settings.py")
+
+# Define middleware classes at the top level
+class SSLRedirectMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        
+    def __call__(self, request):
+        # Check for HTTPS requests in development mode
+        if DEBUG:
+            https_flags = [
+                request.META.get('HTTP_X_FORWARDED_PROTO') == 'https',
+                request.META.get('wsgi.url_scheme') == 'https',
+                request.is_secure(),
+                request.META.get('SERVER_PORT') == '443',
+                request.META.get('HTTP_X_FORWARDED_SSL') == 'on',
+                request.META.get('HTTPS') == 'on'
+            ]
+            
+            if any(https_flags):
+                logger.warning(f"Detected HTTPS request in development for {request.path}, redirecting to HTTP")
+                url = request.build_absolute_uri()
+                url = url.replace('https://', 'http://')
+                response = HttpResponseRedirect(url)
+                response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                return response
+                
+        return self.get_response(request)
 
 # Load environment variables
 load_dotenv()
@@ -20,16 +48,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't', 'yes')
+
+# Always force debug mode during development to ensure HTTP
+IS_LOCAL = (socket.gethostname().startswith(('localhost', '127.0.0.1')) or 
+           os.environ.get('ENV') == 'development' or
+           'RENDER' not in os.environ)
+
+if IS_LOCAL:
+    DEBUG = True
+    logger.info("Local environment detected, forcing DEBUG=True")
 
 # ALLOWED_HOSTS configuration
-# Temporarily hardcode to rule out env variable issues
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'rentify01-yfnu.onrender.com', 'rentify01-1.onrender.com', '*']
+ALLOWED_HOSTS = ['*']  # Allow all hosts for development
 logger.info(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
-
-# Optionally, log environment variable for debugging
-env_allowed_hosts = os.getenv('ALLOWED_HOSTS', 'Not set')
-logger.info(f"ALLOWED_HOSTS env variable: {env_allowed_hosts}")
 
 # Application definition
 INSTALLED_APPS = [
@@ -59,11 +91,13 @@ INSTALLED_APPS = [
     'notifications_app',
 ]
 
+# Our SSL middleware needs to be first to catch any HTTPS requests
 MIDDLEWARE = [
+    'backend.settings.SSLRedirectMiddleware',  # Custom SSL redirect must be first
+    'corsheaders.middleware.CorsMiddleware',   # CORS headers should be early
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise should be right after security middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -145,19 +179,22 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Add frontend build directory to STATICFILES_DIRS
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'static'),  # React static files
-    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'),    # Tailwind output directory
+    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'static'),
+    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'),
 ]
 
-# Ensure the dist directory exists
+# Create directories if they don't exist
+os.makedirs(os.path.join(BASE_DIR, 'staticfiles'), exist_ok=True)
 os.makedirs(os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'), exist_ok=True)
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
-# Whitenoise configuration for serving static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Whitenoise configuration - use a simpler storage for development
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
 # Additional directory for serving non-static files from the React build
 WHITENOISE_ROOT = os.path.join(BASE_DIR, '..', 'frontend', 'build')
 
@@ -166,12 +203,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
     'http://10.10.162.38:3000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
     'https://rentify01-yfnu.onrender.com',
     'https://rentify01-1.onrender.com',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for debugging
+# For development, allow all origins
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -185,35 +227,52 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Additional CORS headers for debugging
-CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With']
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With', 'Authorization']
+
+# Allow all headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://10.10.162.38:3000',
     'https://rentify01-yfnu.onrender.com',
     'https://rentify01-1.onrender.com',
-    'http://localhost:3000',
 ]
 
 # Django REST framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Add session auth for browser testing
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-}
-
-# JWT configuration
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_BLACKLIST_ENABLED': True,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ),
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 # Authentication backends
@@ -222,7 +281,6 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-    # 'drf_social_oauth2.backends.DjangoOAuth2',  # Temporarily commented out
 )
 
 # OAuth credentials
@@ -253,21 +311,52 @@ SOCIAL_AUTH_PIPELINE = (
     'auth_app.views.oauth_redirect',
 )
 
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/auth-success'
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://rentify01-yfnu.onrender.com/login'
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/register-success'
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+# Dynamic OAuth redirect URLs based on environment
+if DEBUG:
+    # Development URLs
+    SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/auth-success'
+    SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login'
+    SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'http://localhost:3000/register-success'
+    SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+else:
+    # Production URLs
+    SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/auth-success'
+    SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://rentify01-yfnu.onrender.com/login'
+    SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify01-yfnu.onrender.com/register-success'
+    SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 AUTH_USER_MODEL = 'auth_app.User'
 
 APPEND_SLASH = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-# Update for Heroku/Render hosting
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = not DEBUG
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+# SECURITY SETTINGS - ONE PLACE FOR ALL HTTPS/HTTP CONFIGURATION
+# In development, forcefully disable all HTTPS-related security settings
+if DEBUG:
+    # Force HTTP for local development
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_PROXY_SSL_HEADER = None
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    SECURE_CONTENT_TYPE_NOSNIFF = False
+    
+    # Allow OAuth over HTTP for development
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
+    logger.info("Development mode: SSL/HTTPS settings forcibly disabled")
+else:
+    # Production settings - require HTTPS
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    logger.info("Production mode: HTTPS enforced")
+
+# Tell Django we're behind a proxy for development
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # Logging configuration
 LOGGING = {
@@ -285,24 +374,43 @@ LOGGING = {
         },
         'social_django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
         },
         'django.request': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
         },
     },
 }
 
-# Debug logging for static files
+# Debug logging for static files (only in DEBUG mode)
 if DEBUG:
-    import logging
-    l = logging.getLogger('django.request')
-    l.setLevel(logging.DEBUG)
-    l.addHandler(logging.StreamHandler())
-    
-    # Static file handling logging
+    # Set up detailed logging for static files
     staticfiles_logger = logging.getLogger('django.contrib.staticfiles')
     staticfiles_logger.setLevel(logging.DEBUG)
     staticfiles_logger.addHandler(logging.StreamHandler())
+    
+    # Add WhiteNoise logging for detailed static file serving info
+    whitenoise_logger = logging.getLogger('whitenoise')
+    whitenoise_logger.setLevel(logging.DEBUG)
+    whitenoise_logger.addHandler(logging.StreamHandler())
+    
+    # Log static file configuration
+    logger.info(f"Static files configuration:")
+    logger.info(f"STATIC_URL: {STATIC_URL}")
+    logger.info(f"STATIC_ROOT: {STATIC_ROOT}")
+    logger.info(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
+    logger.info(f"WHITENOISE_ROOT: {WHITENOISE_ROOT}")
+    logger.info(f"Frontend build dir exists: {os.path.exists(os.path.join(BASE_DIR, '..', 'frontend', 'build'))}")
+    logger.info(f"dist dir exists: {os.path.exists(os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'))}")
+    
+    # Log every static file request
+    def log_static_request(sender, **kwargs):
+        request = kwargs.get('request')
+        if request and request.path.startswith(('/static/', '/dist/')):
+            logger.debug(f"Static file request: {request.path}")
+    
+    # Use request_started signal from django.core.signals
+    from django.core.signals import request_started
+    request_started.connect(log_static_request)

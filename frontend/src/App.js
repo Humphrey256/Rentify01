@@ -25,6 +25,40 @@ import InstagramAuth from './pages/InstagramAuth'; // Import the new InstagramAu
 import { UserProvider, useUser } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
 
+// Add Error Boundary component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("React Error Boundary caught an error:", error, errorInfo);
+    this.setState({ error, errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', backgroundColor: '#fff1f0', color: '#d32f2f', margin: '20px', borderRadius: '4px' }}>
+          <h2>Something went wrong.</h2>
+          <details style={{ whiteSpace: 'pre-wrap', padding: '10px', backgroundColor: '#f8f8f8', borderRadius: '4px' }}>
+            <summary>Show error details</summary>
+            {this.state.error && this.state.error.toString()}
+            <br />
+            {this.state.errorInfo && this.state.errorInfo.componentStack}
+          </details>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Detect production environment to handle static assets differently
 const isProd = process.env.NODE_ENV === 'production';
 const baseUrl = isProd ? (window.location.origin || 'https://rentify01-yfnu.onrender.com') : '';
@@ -168,37 +202,56 @@ const AppLayout = ({ children }) => {
 };
 
 const App = () => {
+  // Add debugging code to detect initialization
+  useEffect(() => {
+    console.log('App component mounted');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Base URL:', window.location.origin);
+    
+    // Check if output.css exists
+    fetch('/dist/output.css')
+      .then(response => {
+        console.log('CSS file response:', response.status, response.statusText);
+        if (!response.ok) throw new Error(`CSS file not found: ${response.status}`);
+        return response.text();
+      })
+      .then(data => console.log('CSS file loaded successfully, length:', data.length))
+      .catch(err => console.error('Error loading CSS file:', err));
+  }, []);
+  
   return (
-    <UserProvider>
-      <CartProvider>
-        <Router>
-          <div className="App">
-            <AppLayout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/add-product" element={<AddProduct />} />
-                <Route path="/manage-products" element={<ManageProducts />} />
-                <Route path="/rent/:productId" element={<RentForm />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                <Route path="/book/:rentalId" element={<BookRental />} />
-                <Route path="/bookings/success" element={<SuccessPage />} /> {/* Updated route */}
-                <Route path="/cancel" element={<Cancel />} />
-                <Route path="/review/:rentalId" element={<ReviewForm />} />
-                <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route */}
-                <Route path="/instagram-auth" element={<InstagramAuth />} /> {/* Instagram OAuth redirect handler */}
-              </Routes>
-            </AppLayout>
-          </div>
-        </Router>
-      </CartProvider>
-    </UserProvider>
+    <ErrorBoundary>
+      <UserProvider>
+        <CartProvider>
+          <Router>
+            <div className="App">
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/add-product" element={<AddProduct />} />
+                  <Route path="/manage-products" element={<ManageProducts />} />
+                  <Route path="/rent/:productId" element={<RentForm />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  <Route path="/book/:rentalId" element={<BookRental />} />
+                  <Route path="/bookings/success" element={<SuccessPage />} /> {/* Updated route */}
+                  <Route path="/cancel" element={<Cancel />} />
+                  <Route path="/review/:rentalId" element={<ReviewForm />} />
+                  <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route */}
+                  <Route path="/instagram-auth" element={<InstagramAuth />} /> {/* Instagram OAuth redirect handler */}
+                </Routes>
+              </AppLayout>
+            </div>
+          </Router>
+        </CartProvider>
+      </UserProvider>
+    </ErrorBoundary>
   );
 };
 
