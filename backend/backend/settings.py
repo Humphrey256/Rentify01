@@ -7,8 +7,14 @@ import logging
 from datetime import timedelta
 import dj_database_url
 
+# Configure logging at the top to catch early issues
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('django')
+logger.info("Starting settings.py")
+
 # Load environment variables
 load_dotenv()
+logger.info("Environment variables loaded")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,10 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Update ALLOWED_HOSTS with robust parsing and logging
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,rentify01-yfnu.onrender.com,rentify01-1.onrender.com').split(',') if host.strip()]
-logger = logging.getLogger('django')
+# ALLOWED_HOSTS configuration
+# Temporarily hardcode to rule out env variable issues
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'rentify01-yfnu.onrender.com', 'rentify01-1.onrender.com']
 logger.info(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+
+# Optionally, log environment variable for debugging
+env_allowed_hosts = os.getenv('ALLOWED_HOSTS', 'Not set')
+logger.info(f"ALLOWED_HOSTS env variable: {env_allowed_hosts}")
 
 # Application definition
 INSTALLED_APPS = [
@@ -228,7 +238,7 @@ SECURE_SSL_REDIRECT = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
-# Logging for debugging
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -245,6 +255,11 @@ LOGGING = {
         'social_django': {
             'handlers': ['console'],
             'level': 'DEBUG',
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
