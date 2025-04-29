@@ -1,33 +1,33 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
-import API_URL from '../api/config'; // Import API URL configuration
+import api, { API_URL } from '../api/config'; // Import the enhanced API client
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [activeProduct, setActiveProduct] = useState(null);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [error, setError] = useState(null); // Add error state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Fetch products from the API
+  // Fetch products from the API using our enhanced API client
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/rentals/`);
+      const response = await api.get('/api/rentals/');
       setProducts(response.data);
       setError(null);
     } catch (error) {
       console.error('Error fetching products:', error);
-      setError('Failed to load products. Please try again later.');
-      toast.error('Failed to load products');
+      // Use our enhanced error messages
+      setError(error.userMessage || 'Failed to load products. Please try again later.');
+      toast.error(error.userMessage || 'Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -56,8 +56,8 @@ const Products = () => {
 
     setIsUpdating(true);
     try {
-      const response = await axios.patch(
-        `${API_URL}/api/rentals/${productId}/`,
+      const response = await api.patch(
+        `/api/rentals/${productId}/`,
         { is_available: !currentStatus },
         { headers: { Authorization: `Token ${user.token}` } }
       );
@@ -82,7 +82,7 @@ const Products = () => {
       );
     } catch (error) {
       console.error('Error updating product availability:', error);
-      toast.error('Failed to update product availability');
+      toast.error(error.userMessage || 'Failed to update product availability');
     } finally {
       setIsUpdating(false);
     }
@@ -132,11 +132,24 @@ const Products = () => {
         </select>
       </div>
 
-      {/* Loading and error states */}
-      {loading && <p className="text-center">Loading products...</p>}
+      {/* Loading and error states with user-friendly message */}
+      {loading && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-600 mb-2"></div>
+          <p>Loading products...</p>
+        </div>
+      )}
       
       {error && !loading && (
-        <div className="text-center text-red-500 mb-4">{error}</div>
+        <div className="text-center text-red-500 mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+          <p>{error}</p>
+          <button 
+            onClick={fetchProducts} 
+            className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Try Again
+          </button>
+        </div>
       )}
 
       {/* Product grid */}
