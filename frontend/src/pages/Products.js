@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import api, { API_URL } from '../api/config'; // Import the enhanced API client
+import api, { getImageUrl } from '../api/config'; // Import the getImageUrl helper
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -36,12 +36,6 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
-  // Helper function for image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return `${API_URL}/media/default-placeholder.png`;
-    return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
-  };
 
   const handleRentNow = (productId) => {
     if (!user) {
@@ -168,7 +162,7 @@ const Products = () => {
                 className="w-full h-48 object-cover mb-4 rounded-lg"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = `${API_URL}/media/default-placeholder.png`;
+                  e.target.src = '/placeholder-image.jpg';
                 }}
               />
               <h2 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h2>
@@ -234,7 +228,7 @@ const Products = () => {
               className="w-full h-auto object-contain mb-4 rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = `${API_URL}/media/default-placeholder.png`;
+                e.target.src = '/placeholder-image.jpg';
               }}
             />
             <p className="text-gray-700">{activeProduct.details}</p>

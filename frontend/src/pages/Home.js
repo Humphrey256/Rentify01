@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api, { API_URL } from '../api/config'; // Import enhanced API client
+import api, { getImageUrl } from '../api/config'; // Import the getImageUrl helper
 import Footer from '../components/Footer';
 
 const Home = () => {
@@ -28,12 +28,6 @@ const Home = () => {
 
     fetchProducts();
   }, []);
-
-  // Helper function for image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/placeholder-image.jpg';
-    return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 pt-16">

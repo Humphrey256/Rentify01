@@ -149,13 +149,19 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS
+# CORS configuration
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://10.10.162.38:3000',
     'https://rentify01-yfnu.onrender.com',
     'https://rentify01-1.onrender.com',
 ]
+
+# Allow credentials for requests
+CORS_ALLOW_CREDENTIALS = True
+
+# Additional CORS headers for debugging
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With']
 
 CSRF_TRUSTED_ORIGINS = [
     'https://rentify01-yfnu.onrender.com',
