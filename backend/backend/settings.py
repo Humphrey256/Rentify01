@@ -77,7 +77,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'build')],  # Add the React build directory
+        'DIRS': [os.path.join(BASE_DIR, '..', 'frontend', 'build')],  # Look for templates in React build
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -143,22 +143,23 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Add additional directories for static files
+# Add frontend build directory to STATICFILES_DIRS
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'build', 'static'),  # React build static directory
+    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'static'),  # React static files
+    os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'),    # Tailwind output directory
 ]
+
+# Ensure the dist directory exists
+os.makedirs(os.path.join(BASE_DIR, '..', 'frontend', 'build', 'dist'), exist_ok=True)
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Whitenoise configuration
+# Whitenoise configuration for serving static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-WHITENOISE_ROOT = os.path.join(BASE_DIR, 'build')
-WHITENOISE_INDEX_FILE = True
-
-# Allow WhiteNoise to serve index.html for non-matched routes (SPAs)
-WHITENOISE_HTML5_MODE = True
+# Additional directory for serving non-static files from the React build
+WHITENOISE_ROOT = os.path.join(BASE_DIR, '..', 'frontend', 'build')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -293,3 +294,15 @@ LOGGING = {
         },
     },
 }
+
+# Debug logging for static files
+if DEBUG:
+    import logging
+    l = logging.getLogger('django.request')
+    l.setLevel(logging.DEBUG)
+    l.addHandler(logging.StreamHandler())
+    
+    # Static file handling logging
+    staticfiles_logger = logging.getLogger('django.contrib.staticfiles')
+    staticfiles_logger.setLevel(logging.DEBUG)
+    staticfiles_logger.addHandler(logging.StreamHandler())

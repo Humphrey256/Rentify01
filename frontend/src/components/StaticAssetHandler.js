@@ -1,27 +1,32 @@
 import React, { useState, useEffect } from 'react';
 
 /**
- * Component to handle static asset loading errors gracefully
- * This is particularly useful for Render hosting where static files may give 500 errors
- * when the server is spinning up
+ * Component that handles loading static assets with error handling and retry functionality
+ * @param {Object} props
+ * @param {string} props.src - URL of the static asset to load
+ * @param {string} props.type - Type of asset ('css' or 'js')
+ * @param {number} props.maxRetries - Maximum number of retry attempts
+ * @param {number} props.retryDelay - Delay in ms between retries
+ * @param {React.ReactNode} props.fallbackContent - Content to display if asset fails to load
  */
 const StaticAssetHandler = ({ 
   src, 
-  fallbackContent,
-  type = 'css',
-  maxRetries = 3,
-  retryDelay = 5000
+  type = 'css', 
+  maxRetries = 3, 
+  retryDelay = 3000,
+  fallbackContent = null 
 }) => {
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [retries, setRetries] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+    let timer;
+    
     const loadAsset = () => {
-      setLoading(true);
-      setError(false);
-      
       let element;
+      
       if (type === 'css') {
         element = document.createElement('link');
         element.rel = 'stylesheet';
@@ -31,58 +36,70 @@ const StaticAssetHandler = ({
         element = document.createElement('script');
         element.type = 'text/javascript';
         element.src = src;
-        element.async = true;
-      }
-
-      if (!element) return;
-
-      // Set up success and error handlers
-      element.onload = () => {
-        console.log(`Successfully loaded ${type} asset: ${src}`);
-        setLoading(false);
-        setError(false);
-      };
-
-      element.onerror = () => {
-        console.error(`Failed to load ${type} asset: ${src}`);
+      } else {
+        // Unsupported asset type
+        console.error(`Unsupported asset type: ${type}`);
         setError(true);
-        setLoading(false);
-        
-        // Remove failed element
-        if (element.parentNode) {
-          element.parentNode.removeChild(element);
-        }
-        
-        // Retry loading if we haven't exceeded max retries
-        if (retries < maxRetries) {
-          console.log(`Retrying asset load... (${retries + 1}/${maxRetries})`);
-          setTimeout(() => {
-            setRetries(prev => prev + 1);
-            loadAsset();
-          }, retryDelay);
+        return;
+      }
+      
+      // Add unique query parameter to bust cache
+      const url = new URL(src, window.location.origin);
+      url.searchParams.set('t', Date.now());
+      if (type === 'css') {
+        element.href = url.toString();
+      } else {
+        element.src = url.toString();
+      }
+      
+      // Handle load and error events
+      element.onload = () => {
+        if (isMounted) {
+          console.log(`Successfully loaded ${src}`);
+          setLoaded(true);
+          setError(false);
         }
       };
-
-      // Add to document
+      
+      element.onerror = () => {
+        if (isMounted) {
+          console.error(`Failed to load ${src}`);
+          if (retries < maxRetries) {
+            // Retry loading after delay
+            timer = setTimeout(() => {
+              if (isMounted) {
+                console.log(`Retrying ${src} (${retries + 1}/${maxRetries})`);
+                setRetries(prev => prev + 1);
+                document.head.removeChild(element);
+                loadAsset();
+              }
+            }, retryDelay);
+          } else {
+            console.error(`Max retries reached for ${src}`);
+            setError(true);
+          }
+        }
+      };
+      
       document.head.appendChild(element);
     };
     
     loadAsset();
     
-    // Cleanup function to remove the element if component unmounts
+    // Cleanup function
     return () => {
-      const element = type === 'css' 
-        ? document.querySelector(`link[href="${src}"]`) 
-        : document.querySelector(`script[src="${src}"]`);
-      
-      if (element && element.parentNode) {
-        element.parentNode.removeChild(element);
-      }
+      isMounted = false;
+      if (timer) clearTimeout(timer);
     };
-  }, [src, type, retries, maxRetries, retryDelay]);
-
-  // Render nothing if successfully loaded, or fallback content if failed after all retries
-  return (error && retries >= maxRetries) ? fallbackContent : null;
+  }, [src, type, maxRetries, retryDelay]);
+  
+  // Return fallback content if there was an error loading the asset
+  if (error && fallbackContent) {
+    return <>{fallbackContent}</>;
+  }
+  
+  // Don't render anything if no error or asset loaded successfully
+  return null;
 };
 
 export default StaticAssetHandler;

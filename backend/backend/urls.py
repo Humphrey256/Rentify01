@@ -1,58 +1,75 @@
+import os
 from django.contrib import admin
 from django.urls import path, include, re_path
-from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
-import os
+from django.views.static import serve
+from django.http import HttpResponse
+import logging
+
+logger = logging.getLogger('django')
 
 # Optional: Create a simple view for the root URL
 def home(request):
     return HttpResponse("Welcome to Rentify API!")
 
+# Simple health check endpoint
+def health_check(request):
+    logger.info("Health check endpoint accessed")
+    return HttpResponse("OK")
+
+# Special handler for output.css to address the 500 error
+def serve_css(request):
+    logger.info("CSS file requested")
+    css_path = os.path.join(settings.BASE_DIR, '..', 'frontend', 'build', 'dist', 'output.css')
+    if os.path.exists(css_path):
+        with open(css_path, 'r') as f:
+            css_content = f.read()
+        response = HttpResponse(css_content, content_type='text/css')
+        return response
+    else:
+        logger.error(f"CSS file not found at {css_path}")
+        # Return empty CSS if file doesn't exist
+        return HttpResponse('/* CSS file not found */', content_type='text/css')
+
+# Special handler for bundle.js to address the 520 error
+def serve_bundle_js(request):
+    logger.info("Bundle.js file requested")
+    js_path = os.path.join(settings.BASE_DIR, '..', 'frontend', 'build', 'static', 'js', 'bundle.js')
+    if os.path.exists(js_path):
+        with open(js_path, 'r') as f:
+            js_content = f.read()
+        response = HttpResponse(js_content, content_type='application/javascript')
+        return response
+    else:
+        logger.error(f"Bundle.js file not found at {js_path}")
+        # Return minimal JS if file doesn't exist
+        return HttpResponse('console.log("Bundle not found");', content_type='application/javascript')
+
 urlpatterns = [
-    path('admin/', admin.site.urls),  # Admin panel
+    path('admin/', admin.site.urls),
+    path('api/', include('auth_app.urls')),
+    path('api/', include('rentals_app.urls')),
+    path('api/', include('booking_app.urls')),
+    path('api/', include('reviews_app.urls')),
+    path('api/', include('issues_app.urls')),
+    path('api/', include('notifications_app.urls')),
     
-    # Social auth URLs - moved before API routes for priority
-    path('auth/', include('auth_app.urls')),  # Your custom auth app
-    path('social-auth/', include('social_django.urls', namespace='social')),  # Add this line
-    # path('oauth/', include('drf_social_oauth2.urls', namespace='oauth2')),  # Temporarily commented out
+    # Explicit static file serving
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     
-    # API routes
-    path('api/auth/', include('auth_app.urls')),  # API endpoints for auth
-    path('api/rentals/', include('rentals_app.urls')),  # Rentals API
-    path('api/bookings/', include('booking_app.urls')),  # Bookings API
-    path('api/reviews/', include('reviews_app.urls')),  # Reviews API
-    path('api/issues/', include('issues_app.urls')),  # Issues API
-    path('api/notifications/', include('notifications_app.urls')),  # Notifications API
+    # Serve output.css directly
+    re_path(r'^dist/output\.css$', serve, {
+        'document_root': settings.BASE_DIR.parent / 'frontend' / 'build' / 'dist'
+    }),
     
-    # Add media serving during development and production
-    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
-    
-    # Define explicit routes for critical static files
-    path('dist/output.css', 
-         TemplateView.as_view(
-             template_name='static/css/output.css',
-             content_type='text/css'
-         )),
-    path('static/js/bundle.js', 
-         TemplateView.as_view(
-             template_name='static/js/bundle.js',
-             content_type='application/javascript'
-         )),
-    
-    # API root - accessible via /api/
-    path('api/', home),
+    # Catch-all for React frontend
+    re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
 ]
 
-# Add a fallback route to serve frontend for all other paths - crucial for React Router
-urlpatterns += [
-    re_path(r'^(?!api/)(?!admin/)(?!static/)(?!media/).*$', 
-            TemplateView.as_view(template_name='index.html'),
-            name='frontend'),
-]
-
-# Debug-only static file serving
+# In development, use Django to serve media and static files
 if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static('/dist/', document_root=os.path.join(settings.BASE_DIR, 'build', 'dist'))

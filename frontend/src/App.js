@@ -27,32 +27,9 @@ import { CartProvider } from './context/CartContext';
 
 // Detect production environment to handle static assets differently
 const isProd = process.env.NODE_ENV === 'production';
-const baseUrl = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
+const baseUrl = isProd ? (window.location.origin || 'https://rentify01-yfnu.onrender.com') : '';
 
 // CSS backup styles for when the main stylesheet fails to load
-const fallbackCssStyles = {
-  body: {
-    margin: 0,
-    fontFamily: 'sans-serif',
-    backgroundColor: '#f5f5f5',
-    color: '#333'
-  },
-  navbar: {
-    backgroundColor: '#4a5568',
-    color: 'white',
-    padding: '1rem',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-  },
-  button: {
-    backgroundColor: '#ecc94b',
-    color: '#333',
-    padding: '0.5rem 1rem',
-    border: 'none',
-    borderRadius: '0.25rem',
-    cursor: 'pointer'
-  }
-};
-
 const FallbackStylesheet = () => {
   useEffect(() => {
     const style = document.createElement('style');
@@ -77,6 +54,14 @@ const FallbackStylesheet = () => {
         border-radius: 0.25rem;
         cursor: pointer;
       }
+      /* More basic styles to provide minimal functionality */
+      .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+      .flex { display: flex; }
+      .flex-col { flex-direction: column; }
+      .flex-grow { flex-grow: 1; }
+      .items-center { align-items: center; }
+      .justify-center { justify-content: center; }
+      .min-h-screen { min-height: 100vh; }
     `;
     document.head.appendChild(style);
     
@@ -119,6 +104,20 @@ const AppLayout = ({ children }) => {
     };
   }, []);
 
+  // Handle bundle.js syntax error by forcing a reload
+  useEffect(() => {
+    if (!staticAssetsReady) {
+      const reloadTimer = setTimeout(() => {
+        // Only force reload if we're still in an error state after some delay
+        if (!staticAssetsReady) {
+          window.location.reload();
+        }
+      }, 30000); // 30 second delay before forcing reload
+      
+      return () => clearTimeout(reloadTimer);
+    }
+  }, [staticAssetsReady]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -133,20 +132,21 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Handle critical static assets */}
+      {/* Handle critical static assets with backup approach */}
       <StaticAssetHandler
         src={`${baseUrl}/dist/output.css`}
         type="css"
-        maxRetries={3}
+        maxRetries={5}
         retryDelay={3000}
         fallbackContent={<FallbackStylesheet />}
       />
+      
       <StaticAssetHandler
         src={`${baseUrl}/static/js/bundle.js`}
         type="js"
-        maxRetries={3}
+        maxRetries={5}
         retryDelay={3000}
-        fallbackContent={null}
+        fallbackContent={null} // JS has no visual fallback
       />
       
       <Navbar />
