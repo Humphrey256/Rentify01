@@ -5,6 +5,7 @@ import socket
 from django.core.servers.basehttp import WSGIServer
 import logging
 from datetime import timedelta
+import dj_database_url  # Import for database URL parsing
 
 # Load environment variables
 load_dotenv()
@@ -83,13 +84,37 @@ class CustomWSGIServer(WSGIServer):
     timeout = 120
 WSGIServer = CustomWSGIServer
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
+# Check database type from environment variable (sqlite or postgresql)
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+
+if DB_TYPE == 'postgresql':
+    # PostgreSQL configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'rentify'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    # Default to SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Use DATABASE_URL environment variable if available (for deployment platforms)
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.parse(DATABASE_URL)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
