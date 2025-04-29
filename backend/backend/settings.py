@@ -16,8 +16,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Update ALLOWED_HOSTS to include Render domain
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,rentify01-yfnu.onrender.com').split(',')
+# Update ALLOWED_HOSTS to include both Render domains
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,rentify01-yfnu.onrender.com,rentify01-1.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
