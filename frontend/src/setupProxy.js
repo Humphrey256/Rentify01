@@ -40,4 +40,24 @@ module.exports = function(app) {
       autoRewrite: true
     })
   );
+
+  // Add proxy for /dist path to handle CSS and other static files
+  app.use(
+    '/dist',
+    createProxyMiddleware({
+      target: 'http://localhost:8000',
+      changeOrigin: true,
+      secure: false,
+      headers: {
+        Connection: 'keep-alive',
+        Host: 'localhost:8000'
+      },
+      onProxyReq: (proxyReq, req, res) => {
+        console.log(`Proxying /dist request to: ${proxyReq.path}`);
+      },
+      timeout: 10000, // Increase timeout to 10 seconds
+      hostRewrite: 'localhost:8000',
+      autoRewrite: true
+    })
+  );
 };
