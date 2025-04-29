@@ -4,7 +4,7 @@ import axios from 'axios';
 // In production, we continue using the full URL
 const isProd = process.env.NODE_ENV === 'production';
 const API_URL = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
-const MEDIA_URL = isProd ? 'https://rentify01-1.onrender.com/media' : '/media';
+const MEDIA_URL = isProd ? 'https://rentify01-yfnu.onrender.com/media' : '/media'; // Updated to use the same domain
 
 // Track backend status to prevent excessive retries
 let backendStatus = {
@@ -60,6 +60,18 @@ api.interceptors.response.use(
       // Special message for Render's 504 Gateway Timeout
       error.userMessage = 'The server is taking longer than expected to respond. This is normal for our free hosting plan after periods of inactivity. The app will automatically use sample data while the server starts up (this may take 1-2 minutes).';
       error.isRenderSpinUp = true;
+    } else if (error.response && error.response.status === 500) {
+      // Handle 500 Internal Server Error - common for static file issues
+      error.userMessage = 'The server encountered an error when processing this request. This might be a temporary issue with static files. Refreshing the page may help.';
+      error.isStaticFileError = error.config && (
+        error.config.url.includes('/static/') || 
+        error.config.url.includes('/dist/') ||
+        error.config.url.includes('.css') ||
+        error.config.url.includes('.js')
+      );
+    } else if (error.response && error.response.status === 520) {
+      // Cloudflare 520 error handling
+      error.userMessage = 'The web server is returning an unknown error (520). This is typically a temporary issue that will be resolved shortly.';
     } else if (error.response) {
       // The request was made and the server responded with a status code outside of 2xx
       error.userMessage = `Server error: ${error.response.status}`;
@@ -84,6 +96,7 @@ const getImageUrl = (imagePath) => {
     return `/placeholder-image.jpg`;
   }
   
+  // Use a single domain for all requests to avoid cross-origin issues
   return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
 };
 
@@ -122,10 +135,14 @@ const requestWithRetry = async (method, url, data = null, options = {}) => {
       return await api.delete(url, options);
     }
   } catch (error) {
-    // Only retry on timeout or 504 errors
-    if ((error.code === 'ECONNABORTED' || 
-         (error.response && error.response.status === 504)) && 
-         retries > 0) {
+    // Only retry on timeout, 504, 500, or 520 errors
+    const shouldRetry = error.code === 'ECONNABORTED' || 
+                      (error.response && 
+                       (error.response.status === 504 || 
+                        error.response.status === 500 ||
+                        error.response.status === 520));
+                        
+    if (shouldRetry && retries > 0) {
       console.log(`Request failed, retrying... (${retries} retries left)`);
       
       // Call the onRetry callback if provided

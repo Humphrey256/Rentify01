@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
+import StaticAssetHandler from './components/StaticAssetHandler';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -24,10 +25,99 @@ import InstagramAuth from './pages/InstagramAuth'; // Import the new InstagramAu
 import { UserProvider, useUser } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
 
+// Detect production environment to handle static assets differently
+const isProd = process.env.NODE_ENV === 'production';
+const baseUrl = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
+
+// CSS backup styles for when the main stylesheet fails to load
+const fallbackCssStyles = {
+  body: {
+    margin: 0,
+    fontFamily: 'sans-serif',
+    backgroundColor: '#f5f5f5',
+    color: '#333'
+  },
+  navbar: {
+    backgroundColor: '#4a5568',
+    color: 'white',
+    padding: '1rem',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  },
+  button: {
+    backgroundColor: '#ecc94b',
+    color: '#333',
+    padding: '0.5rem 1rem',
+    border: 'none',
+    borderRadius: '0.25rem',
+    cursor: 'pointer'
+  }
+};
+
+const FallbackStylesheet = () => {
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      body { 
+        margin: 0;
+        font-family: sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+      .navbar {
+        background-color: #4a5568;
+        color: white;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .button {
+        background-color: #ecc94b;
+        color: #333;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+  
+  return (
+    <div className="static-asset-error p-4 bg-yellow-100 text-yellow-800 rounded mb-4">
+      <p className="font-medium">Notice: Using basic styles</p>
+      <p className="text-sm">
+        Some style resources could not be loaded. You're seeing a simplified version of the site.
+        This typically happens when the server is starting up. Please refresh in a few moments.
+      </p>
+    </div>
+  );
+};
+
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const { user, isLoading } = useUser();
   const noSidebarPaths = ['/', '/login', '/register'];
+  const [staticAssetsReady, setStaticAssetsReady] = useState(true);
+  
+  // Monitor static asset loading errors
+  useEffect(() => {
+    const handleError = (event) => {
+      const { target } = event;
+      if (target.tagName === 'LINK' || target.tagName === 'SCRIPT') {
+        console.warn('Static asset failed to load:', target.href || target.src);
+        setStaticAssetsReady(false);
+      }
+    };
+    
+    window.addEventListener('error', handleError, true);
+    
+    return () => {
+      window.removeEventListener('error', handleError, true);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -43,10 +133,32 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Handle critical static assets */}
+      <StaticAssetHandler
+        src={`${baseUrl}/dist/output.css`}
+        type="css"
+        maxRetries={3}
+        retryDelay={3000}
+        fallbackContent={<FallbackStylesheet />}
+      />
+      <StaticAssetHandler
+        src={`${baseUrl}/static/js/bundle.js`}
+        type="js"
+        maxRetries={3}
+        retryDelay={3000}
+        fallbackContent={null}
+      />
+      
       <Navbar />
       <div className="flex flex-grow">
         {user && !noSidebarPaths.includes(location.pathname) && <Sidebar />}
         <div className="flex-grow container mx-auto p-4">
+          {!staticAssetsReady && (
+            <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded">
+              <p className="font-medium">Some resources are still loading</p>
+              <p className="text-sm">The application is still starting up. You may see minimal styling or functionality until all resources are loaded.</p>
+            </div>
+          )}
           {children}
         </div>
       </div>

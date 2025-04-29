@@ -24,7 +24,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # ALLOWED_HOSTS configuration
 # Temporarily hardcode to rule out env variable issues
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'rentify01-yfnu.onrender.com', 'rentify01-1.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'rentify01-yfnu.onrender.com', 'rentify01-1.onrender.com', '*']
 logger.info(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
 # Optionally, log environment variable for debugging
@@ -61,7 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise should be right after security middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -77,7 +77,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'build')],  # Add the React build directory
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -139,13 +139,26 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static and media
-STATIC_URL = 'static/'
+# Static and media files configuration
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Add additional directories for static files
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'build', 'static'),  # React build static directory
+]
+
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Whitenoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_ROOT = os.path.join(BASE_DIR, 'build')
+WHITENOISE_INDEX_FILE = True
+
+# Allow WhiteNoise to serve index.html for non-matched routes (SPAs)
+WHITENOISE_HTML5_MODE = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -157,6 +170,16 @@ CORS_ALLOWED_ORIGINS = [
     'https://rentify01-1.onrender.com',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all origins for debugging
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 # Allow credentials for requests
 CORS_ALLOW_CREDENTIALS = True
 
@@ -166,6 +189,7 @@ CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With']
 CSRF_TRUSTED_ORIGINS = [
     'https://rentify01-yfnu.onrender.com',
     'https://rentify01-1.onrender.com',
+    'http://localhost:3000',
 ]
 
 # Django REST framework settings
