@@ -3,28 +3,22 @@ import axios from 'axios';
 // In development, we use relative URLs which get proxied through the React dev server
 // In production, we continue using the full URL
 const isProd = process.env.NODE_ENV === 'production';
-const API_URL = isProd ? 'https://rentify01-1.onrender.com' : '';
+const API_URL = isProd ? 'https://rentify01-yfnu.onrender.com' : '';
 const MEDIA_URL = isProd ? 'https://rentify01-1.onrender.com/media' : '/media';
 
 // Create axios instance with custom configuration
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000, // 10 seconds timeout
-  withCredentials: false, // Try without credentials for cross-origin
+  timeout: 30000, // Increased timeout to 30 seconds to allow for Render spin-up
   headers: {
     'Content-Type': 'application/json',
-    // Remove any headers that might trigger ad blockers
+    'X-Requested-With': 'XMLHttpRequest',
   }
 });
 
 // Add request interceptor for debugging
 api.interceptors.request.use(config => {
   console.log(`Making request to: ${config.url}`);
-  
-  // Add a random query parameter to bypass caching and ad blockers
-  const separator = config.url.includes('?') ? '&' : '?';
-  config.url = `${config.url}${separator}_=${Date.now()}`;
-  
   return config;
 }, error => {
   console.error('Request error:', error);
@@ -40,12 +34,17 @@ api.interceptors.response.use(
     
     // Create a more user-friendly error message
     if (error.message === 'Network Error') {
-      error.userMessage = 'Unable to connect to the server. This might be caused by an ad blocker or network issue. Try disabling any ad blockers or using a different browser.';
+      error.userMessage = 'Unable to connect to the server. Please check your internet connection or disable ad blockers that might be interfering with the request.';
+    } else if (error.response && error.response.status === 504) {
+      error.userMessage = 'The server is taking too long to respond. This might be because the server is spinning up after inactivity. Please try again in a moment.';
     } else if (error.response) {
+      // The request was made and the server responded with a status code outside of 2xx
       error.userMessage = `Server error: ${error.response.status}`;
     } else if (error.request) {
-      error.userMessage = 'No response received from server.';
+      // The request was made but no response was received
+      error.userMessage = 'No response received from server. The server might be down or unreachable.';
     } else {
+      // Something happened in setting up the request that triggered an Error
       error.userMessage = 'An error occurred while setting up the request.';
     }
     
@@ -53,18 +52,52 @@ api.interceptors.response.use(
   }
 );
 
-// Helper function to get image URLs that work with the proxy
+// Helper function to get image URLs
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '/placeholder-image.jpg';
-  
-  // For local development, use the proxied URL
-  if (!isProd) {
-    return `/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
-  }
-  
-  // For production, use the full URL
-  return `${MEDIA_URL}/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
+  return `${API_URL}/media/rentals/${typeof imagePath === 'string' ? imagePath.split('/').pop() : imagePath}`;
 };
 
-export { API_URL, MEDIA_URL, getImageUrl };
+/**
+ * Makes a request with automatic retry for timeout errors
+ * Useful for Render's free tier which may need time to spin up
+ */
+const requestWithRetry = async (method, url, data = null, options = {}) => {
+  const { retries = 2, retryDelay = 3000 } = options;
+  
+  try {
+    if (method === 'get') {
+      return await api.get(url, options);
+    } else if (method === 'post') {
+      return await api.post(url, data, options);
+    } else if (method === 'put') {
+      return await api.put(url, data, options);
+    } else if (method === 'patch') {
+      return await api.patch(url, data, options);
+    } else if (method === 'delete') {
+      return await api.delete(url, options);
+    }
+  } catch (error) {
+    // Only retry on timeout or 504 errors
+    if ((error.code === 'ECONNABORTED' || 
+         (error.response && error.response.status === 504)) && 
+         retries > 0) {
+      console.log(`Request failed, retrying... (${retries} retries left)`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      
+      // Retry with one less retry attempt
+      return requestWithRetry(method, url, data, {
+        ...options,
+        retries: retries - 1,
+        retryDelay: retryDelay * 1.5 // Increase delay for subsequent retries
+      });
+    }
+    
+    throw error;
+  }
+};
+
+export { API_URL, getImageUrl, requestWithRetry };
 export default api;

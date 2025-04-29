@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api, { getImageUrl } from '../api/config'; // Import the getImageUrl helper
+import api, { getImageUrl, requestWithRetry } from '../api/config';
 import Footer from '../components/Footer';
 
 const Home = () => {
@@ -8,13 +8,24 @@ const Home = () => {
   const [activeProduct, setActiveProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [spinningUp, setSpinningUp] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/rentals/');
+        setSpinningUp(false);
+        
+        // Use the requestWithRetry function with automatic retry for timeouts
+        const response = await requestWithRetry('get', '/api/rentals/', null, {
+          retries: 3,
+          retryDelay: 3000,
+          onRetry: () => {
+            setSpinningUp(true);
+          }
+        });
+        
         const displayedProducts = response.data.slice(0, 12);
         setProducts(displayedProducts);
         setError(null);
@@ -23,6 +34,7 @@ const Home = () => {
         setError(error.userMessage || 'Failed to load products. Please try again later.');
       } finally {
         setLoading(false);
+        setSpinningUp(false);
       }
     };
 
@@ -47,34 +59,50 @@ const Home = () => {
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">Available Products</h2>
           
-          {/* Show loading state with animation */}
+          {/* Show loading state with improved message for server spin-up */}
           {loading && (
-            <div className="text-center py-4">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-600 mb-2"></div>
-              <p>Loading products...</p>
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-yellow-600 mb-4"></div>
+              <p className="text-xl">
+                {spinningUp ? 
+                  'Our server is starting up after inactivity. This may take up to 30 seconds...' : 
+                  'Loading products...'}
+              </p>
             </div>
           )}
           
-          {/* Show error with retry button */}
+          {/* Show error with retry button and helpful message */}
           {error && !loading && (
-            <div className="text-center text-red-500 mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
-              <p>{error}</p>
+            <div className="text-center text-red-500 mb-8 p-6 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-lg mb-4">{error}</p>
+              <p className="mb-4 text-gray-700">
+                If this is your first time visiting in a while, the server may need a moment to start up.
+              </p>
               <button 
                 onClick={() => {
                   setLoading(true);
-                  api.get('/api/rentals/')
-                    .then(response => {
-                      setProducts(response.data.slice(0, 12));
-                      setError(null);
-                    })
-                    .catch(err => {
-                      setError(err.userMessage || 'Failed to load products');
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
+                  setSpinningUp(false);
+                  
+                  requestWithRetry('get', '/api/rentals/', null, {
+                    retries: 3,
+                    retryDelay: 3000,
+                    onRetry: () => {
+                      setSpinningUp(true);
+                    }
+                  })
+                  .then(response => {
+                    setProducts(response.data.slice(0, 12));
+                    setError(null);
+                  })
+                  .catch(err => {
+                    setError(err.userMessage || 'Failed to load products');
+                  })
+                  .finally(() => {
+                    setLoading(false);
+                    setSpinningUp(false);
+                  });
                 }}
-                className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
               >
                 Try Again
               </button>

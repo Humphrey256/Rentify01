@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import api, { getImageUrl } from '../api/config'; // Import the getImageUrl helper
+import api, { getImageUrl, requestWithRetry } from '../api/config';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -10,26 +10,37 @@ const Products = () => {
   const [activeProduct, setActiveProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [spinningUp, setSpinningUp] = useState(false);
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Fetch products from the API using our enhanced API client
+  // Fetch products from the API with retry mechanism
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/rentals/');
+      setSpinningUp(false);
+      
+      // Use the requestWithRetry function instead of direct API call
+      const response = await requestWithRetry('get', '/api/rentals/', null, {
+        retries: 3,
+        retryDelay: 3000,
+        onRetry: () => {
+          setSpinningUp(true);
+        }
+      });
+      
       setProducts(response.data);
       setError(null);
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Use our enhanced error messages
       setError(error.userMessage || 'Failed to load products. Please try again later.');
       toast.error(error.userMessage || 'Failed to load products');
     } finally {
       setLoading(false);
+      setSpinningUp(false);
     }
   }, []);
 
@@ -50,10 +61,15 @@ const Products = () => {
 
     setIsUpdating(true);
     try {
-      const response = await api.patch(
+      // Use requestWithRetry for patch requests as well
+      const response = await requestWithRetry(
+        'patch',
         `/api/rentals/${productId}/`,
         { is_available: !currentStatus },
-        { headers: { Authorization: `Token ${user.token}` } }
+        {
+          headers: { Authorization: `Token ${user.token}` },
+          retries: 2
+        }
       );
 
       setProducts((prevProducts) =>
@@ -126,20 +142,28 @@ const Products = () => {
         </select>
       </div>
 
-      {/* Loading and error states with user-friendly message */}
+      {/* Loading and spinning up states with better messaging */}
       {loading && (
-        <div className="text-center py-4">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-600 mb-2"></div>
-          <p>Loading products...</p>
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-yellow-600 mb-4"></div>
+          <p className="text-xl">
+            {spinningUp ? 
+              'Our server is starting up after inactivity. This may take up to 30 seconds...' : 
+              'Loading products...'}
+          </p>
         </div>
       )}
       
+      {/* Error state with retry button */}
       {error && !loading && (
-        <div className="text-center text-red-500 mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
-          <p>{error}</p>
+        <div className="text-center text-red-500 mb-8 p-6 bg-red-50 rounded-lg border border-red-200">
+          <p className="text-lg mb-4">{error}</p>
+          <p className="mb-4 text-gray-700">
+            If this is your first time visiting in a while, the server may need a moment to start up.
+          </p>
           <button 
             onClick={fetchProducts} 
-            className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
           >
             Try Again
           </button>
