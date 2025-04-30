@@ -1,13 +1,30 @@
 import axios from 'axios';
 
-// Use production API URL when in production, otherwise use local development URL
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-    ? process.env.REACT_APP_PROD_API_URL.replace('/api', '')  // Remove '/api' since it's included in individual requests
-    : process.env.REACT_APP_API_URL.replace('/api', '');      // Remove '/api' since it's included in individual requests
+// Determine the environment
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Get appropriate API URL
+const API_BASE_URL = isProduction
+    ? process.env.REACT_APP_PROD_API_URL?.replace('/api', '') || 'https://rentify-1-d4gk.onrender.com'
+    : process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
+
+console.log('Using API base URL:', API_BASE_URL);
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     timeout: 60000, // Set timeout to 60 seconds
 });
+
+// Add request interceptor for authentication
+axiosInstance.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
 export default axiosInstance;
