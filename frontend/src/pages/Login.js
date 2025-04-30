@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import axios from 'axios';
-import { Eye, EyeOff } from 'lucide-react'; // Importing icons for show/hide password
+import { Eye, EyeOff } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axiosInstance from '../utils/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { setUser } = useUser();
   const navigate = useNavigate();
+
+  // Get the API base URL for social auth
+  const API_BASE = axiosInstance.defaults.baseURL;
 
   const validateForm = () => {
     if (!username.trim()) {
@@ -38,20 +41,20 @@ const Login = () => {
     }
 
     try {
-      console.log('Sending login request with:', { username, password }); // Log the request payload
-      const response = await axios.post('http://localhost:8000/api/auth/login/', { username, password });
-      console.log('Login response:', response.data); // Log the response data
+      console.log('Sending login request with:', { username, password });
+      const response = await axiosInstance.post('/api/auth/login/', { username, password });
+      console.log('Login response:', response.data);
 
       const { id, username: userUsername, email, role, token, refresh } = response.data;
       const userData = { id, username: userUsername, email, role, token };
 
-      setUser(userData); // Update user context
-      localStorage.setItem('user', JSON.stringify(userData)); // Save user to localStorage
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('accessToken', token);
       if (refresh) {
         localStorage.setItem('refreshToken', refresh);
       }
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       toast.success('Login successful!');
 
@@ -61,7 +64,7 @@ const Login = () => {
       } else if (role === 'user') {
         navigate('/products');
       } else {
-        navigate('/'); // Default redirection if role is not recognized
+        navigate('/');
       }
     } catch (error) {
       console.error('Login failed:', error.response?.data || error.message);
@@ -71,8 +74,8 @@ const Login = () => {
 
   // Handle Google login
   const handleGoogleLogin = () => {
-    console.log('Initiating Google login'); // Log the action
-    window.location.href = 'http://localhost:8000/social-auth/login/google-oauth2/';
+    console.log('Initiating Google login');
+    window.location.href = `${API_BASE}/social-auth/login/google-oauth2/`;
   };
 
   return (
