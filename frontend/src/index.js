@@ -1,12 +1,22 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
+import { createRoot } from 'react-dom/client';
 import App from './App';
-import './App.css'; // Import Tailwind CSS
+import './index.css';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Add console logs for debugging
+console.log('Starting app initialization...');
+
+// Try-catch to identify any render errors
+try {
+  const container = document.getElementById('root');
+  console.log('Root container found:', !!container);
+
+  const root = createRoot(container);
+  console.log('Root created successfully');
+
+  // Remove StrictMode temporarily to see if that resolves the issue
+  root.render(<App />);
+  console.log('App rendered successfully');
+} catch (error) {
+  console.error('Error during app initialization:', error);
+}

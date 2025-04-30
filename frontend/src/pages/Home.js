@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import Footer from '../components/Footer';
+import axiosInstance from '../utils/api';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -9,13 +8,13 @@ const Home = () => {
   const navigate = useNavigate();
 
   // Get the API base URL for images
-  const API_BASE = axios.defaults.baseURL;
+  const API_BASE = axiosInstance.defaults.baseURL;
 
   useEffect(() => {
     // Fetch products from API
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('/api/rentals/');
+        const response = await axiosInstance.get('/api/rentals/');
         // Display the first few products or filter as needed
         const displayedProducts = response.data.slice(0, 12);
         setProducts(displayedProducts);
@@ -95,9 +94,6 @@ const Home = () => {
           </div>
         </div>
       )}
-
-      {/* Footer Section */}
-
     </div>
   );
 };
