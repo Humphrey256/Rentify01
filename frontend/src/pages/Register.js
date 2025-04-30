@@ -59,7 +59,7 @@ const Register = () => {
 
     try {
       console.log('Sending registration data:', formData);
-      await axiosInstance.post('/api/auth/register/', formData);
+      await axiosInstance.post('/auth/register/', formData);
       toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {
