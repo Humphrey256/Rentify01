@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import Footer from '../components/Footer'; // Import the Footer component
+import axiosInstance from '../utils/api'; // Changed to use axiosInstance
+import Footer from '../components/Footer';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
-  const [activeProduct, setActiveProduct] = useState(null); // Track active product for modal
-  const navigate = useNavigate(); // Add navigate for redirection
+  const [activeProduct, setActiveProduct] = useState(null);
+  const navigate = useNavigate();
+
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
 
   useEffect(() => {
     // Fetch products from API
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/rentals/');
+        const response = await axiosInstance.get('/api/rentals/');
         // Display the first few products or filter as needed
-        const displayedProducts = response.data.slice(0, 12); // Display the first 4 products
+        const displayedProducts = response.data.slice(0, 12);
         setProducts(displayedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -25,7 +28,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-16"> {/* Added pt-16 to account for the fixed navbar */}
+    <div className="min-h-screen bg-gray-100 pt-16">
       {/* Hero Section */}
       <section className="bg-yellow-600 text-white py-20">
         <div className="container mx-auto text-center">
@@ -49,12 +52,12 @@ const Home = () => {
                 <div
                   key={product.id}
                   className="bg-white shadow-lg rounded-lg p-4 transition-transform transform hover:scale-105 cursor-pointer"
-                  onClick={() => setActiveProduct(product)} // Set active product for modal
+                  onClick={() => setActiveProduct(product)}
                 >
                   <img
-                    src={`http://localhost:8000/media/rentals/${typeof product.image === 'string' ? product.image.split('/').pop() : product.image}`}
+                    src={`${API_BASE}/media/rentals/${typeof product.image === 'string' ? product.image.split('/').pop() : product.image}`}
                     alt={product.name}
-                    className="w-full h-48 object-cover mb-4 rounded-lg" // Set fixed height and maintain aspect ratio
+                    className="w-full h-48 object-cover mb-4 rounded-lg"
                   />
                   <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
                   <p className="font-bold text-lg mt-2">${product.price}/day</p>
@@ -71,20 +74,20 @@ const Home = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto max-h-[calc(100vh-4rem)]">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-              onClick={() => setActiveProduct(null)} // Close modal
+              onClick={() => setActiveProduct(null)}
             >
               X
             </button>
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={`http://localhost:8000/media/rentals/${typeof activeProduct.image === 'string' ? activeProduct.image.split('/').pop() : activeProduct.image}`}
+              src={`${API_BASE}/media/rentals/${typeof activeProduct.image === 'string' ? activeProduct.image.split('/').pop() : activeProduct.image}`}
               alt={activeProduct.name}
               className="w-full h-auto object-contain mb-4 rounded-lg"
             />
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
             <button
-              onClick={() => navigate('/login')} // Redirect to login page
+              onClick={() => navigate('/login')}
               className="bg-yellow-600 text-white p-3 mt-4 w-full rounded hover:bg-yellow-700"
             >
               Rent Now
@@ -94,7 +97,7 @@ const Home = () => {
       )}
 
       {/* Footer Section */}
-  
+
     </div>
   );
 };
