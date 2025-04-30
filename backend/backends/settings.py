@@ -5,7 +5,7 @@ import socket
 from django.core.servers.basehttp import WSGIServer
 import logging
 from datetime import timedelta
-import dj_database_url  # Import for database URL parsing
+import dj_database_url
 
 # Load environment variables
 load_dotenv()
@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'https://rentify01-yfnu.onrender.com,localhost,127.0.0.1').split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -31,7 +32,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'oauth2_provider',
     'social_django',
-    # 'drf_social_oauth2',  # Temporarily commented out
     'rest_framework_simplejwt.token_blacklist',
 
     # Local apps
@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -84,13 +85,9 @@ class CustomWSGIServer(WSGIServer):
 WSGIServer = CustomWSGIServer
 
 # Database configuration
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# Check database type from environment variable (sqlite or postgresql)
 DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
 
 if DB_TYPE == 'postgresql':
-    # PostgreSQL configuration
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -102,7 +99,6 @@ if DB_TYPE == 'postgresql':
         }
     }
 else:
-    # Default to SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -110,7 +106,7 @@ else:
         }
     }
 
-# Use DATABASE_URL environment variable if available (for deployment platforms)
+# Use DATABASE_URL for override
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
     DATABASES['default'] = dj_database_url.parse(DATABASE_URL)
@@ -130,7 +126,10 @@ USE_I18N = True
 USE_TZ = True
 
 # Static and media
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # For collectstatic
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -139,11 +138,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
-    'http://10.10.162.38:3000',  # Adding your frontend IP address
+    'http://10.10.162.38:3000',
     'https://your-production-domain.com',
 ]
 
-# Django REST framework settings
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://rentify01-yfnu.onrender.com',
+]
+
+# REST framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -153,9 +157,9 @@ REST_FRAMEWORK = {
     ),
 }
 
-# JWT configuration with blacklisting enabled
+# JWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -172,7 +176,6 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-    # 'drf_social_oauth2.backends.DjangoOAuth2',  # Temporarily commented out
 )
 
 # OAuth credentials
@@ -189,7 +192,7 @@ SOCIAL_AUTH_GITHUB_KEY = os.getenv('GITHUB_KEY', '')
 SOCIAL_AUTH_GITHUB_SECRET = os.getenv('GITHUB_SECRET', '')
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']
 
-# OAuth2 pipeline and redirect URLs
+# OAuth2 pipeline
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
@@ -203,17 +206,29 @@ SOCIAL_AUTH_PIPELINE = (
     'auth_app.views.oauth_redirect',
 )
 
+# OAuth redirect URLs
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/auth-success'
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login'
 SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'http://localhost:3000/register-success'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
 
+# Custom user model
 AUTH_USER_MODEL = 'auth_app.User'
 
+# Sessions
 APPEND_SLASH = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-# Logging for debugging
+# Email settings (optional, for password reset/contact)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
