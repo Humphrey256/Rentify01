@@ -58,6 +58,7 @@ const Register = () => {
     setError(null);
 
     try {
+      console.log('Sending registration data:', formData);
       await axiosInstance.post('/api/auth/register/', formData);
       toast.success('Registration successful! Please log in.');
       navigate('/login');
