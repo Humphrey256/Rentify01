@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axiosInstance from '../utils/api';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -17,7 +17,7 @@ const Products = () => {
   // Fetch products from the API
   const fetchProducts = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/rentals/');
+      const response = await axiosInstance.get('/api/rentals/');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -42,8 +42,8 @@ const Products = () => {
 
     setIsUpdating(true);
     try {
-      const response = await axios.patch(
-        `http://localhost:8000/api/rentals/${productId}/`,
+      const response = await axiosInstance.patch(
+        `/api/rentals/${productId}/`,
         { is_available: !currentStatus },
         { headers: { Authorization: `Token ${user.token}` } }
       );
