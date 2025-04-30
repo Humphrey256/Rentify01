@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import Rental
 from .serializers import RentalSerializer
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__)
 class RentalListView(generics.ListCreateAPIView):
     queryset = Rental.objects.all()
     serializer_class = RentalSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    # Allow anyone to GET (list), but only authenticated users to POST (create)
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticatedOrReadOnly()]
 
     def perform_create(self, serializer):
         try:

@@ -151,9 +151,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 # REST framework settings
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ]
+        'rest_framework.permissions.AllowAny',  # or IsAuthenticated if you want all endpoints protected by default
+    ],
 }
 
 # JWT settings

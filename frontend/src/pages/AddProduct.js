@@ -60,7 +60,6 @@ const AddProduct = () => {
       }
 
       const token = localStorage.getItem('accessToken');
-
       await axiosInstance.post('/api/rentals/', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
