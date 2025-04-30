@@ -6,14 +6,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Rentify - Your go-to platform for renting cars, machines, and more." />
   <title>Rentify - Rent Cars and Machines</title>
+  
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-  <link href="/dist/output.css" rel="stylesheet" />
+  
+  <!-- Immediately check and redirect if using HTTPS on localhost -->
+  <script>
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if (window.location.protocol === 'https:') {
+        window.location.replace(window.location.href.replace('https:', 'http:'));
+      }
+    }
+  </script>
+  
+  <!-- Always use correct path to CSS based on environment -->
+  <script>
+    (function() {
+      // Use relative path to prevent hard-coding port numbers
+      var cssUrl;
+      
+      // Check if we're in production based on URL rather than process.env
+      var isProd = window.location.hostname !== 'localhost' && 
+                 window.location.hostname !== '127.0.0.1';
+                 
+      if (isProd) {
+        // In production, use the bundled CSS
+        cssUrl = '/static/css/main.css';
+      } else {
+        // In development, use output.css from backend
+        cssUrl = '/dist/output.css?' + new Date().getTime();
+      }
+      
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = cssUrl;
+      document.head.appendChild(link);
+    })();
+  </script>
+  
   <script src="https://checkout.flutterwave.com/v3.js"></script>
+  
+  <script>
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Override fetch API
+      var originalFetch = window.fetch;
+      window.fetch = function(input, init) {
+        if (typeof input === 'string') {
+          if (input.startsWith('https://localhost') || input.startsWith('https://127.0.0.1')) {
+            input = input.replace('https://', 'http://');
+          }
+        } else if (input instanceof Request) {
+          const url = input.url;
+          if (url.startsWith('https://localhost') || url.startsWith('https://127.0.0.1')) {
+            const httpUrl = url.replace('https://', 'http://');
+            input = new Request(httpUrl, input);
+          }
+        }
+        return originalFetch(input, init);
+      };
+      
+      // Override XMLHttpRequest
+      var originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function() {
+        if (arguments.length > 1 && 
+            typeof arguments[1] === 'string' && 
+            (arguments[1].startsWith('https://localhost') || arguments[1].startsWith('https://127.0.0.1'))) {
+          arguments[1] = arguments[1].replace('https://', 'http://');
+        }
+        return originalOpen.apply(this, arguments);
+      };
+    }
+  </script>
 </head>
 
 <body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
+  
+  <!-- Show a helpful message if the app doesn't render -->
+  <script>
+    setTimeout(function() {
+      var root = document.getElementById('root');
+      if (root && !root.children.length) {
+        root.innerHTML = `
+          <div style="font-family: sans-serif; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #e69b00;">Rentify is starting up...</h2>
+            <p>If you're seeing this message, the application is taking longer than expected to load.</p>
+            <div style="background-color: #f8f9fa; border: 1px solid #e0e0e0; padding: 15px; text-align: left; margin: 20px 0; border-radius: 4px;">
+              <h3 style="margin-top: 0">Common solutions:</h3>
+              <ul style="padding-left: 20px;">
+                <li>Clear your browser cache and refresh the page</li>
+                <li>Disable any ad-blockers or browser extensions</li>
+                <li>Check your network connection</li>
+                <li>Ensure the backend server is running</li>
+              </ul>
+              <div style="background-color: #fff4e5; border-left: 4px solid #ff9800; padding: 10px; margin-top: 10px;">
+                <strong>Important:</strong> This application must use HTTP (not HTTPS) for local development.
+              </div>
+            </div>
+            <div>
+              <button onclick="window.location.reload()" style="background-color: #e69b00; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold;">
+                Reload Page
+              </button>
+              <button onclick="window.location.protocol = 'http:'" style="background-color: #4285f4; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin-left: 10px; font-weight: bold;">
+                Switch to HTTP
+              </button>
+            </div>
+          </div>
+        `;
+        
+        // Auto-reload after 10 seconds if we detect HTTPS
+        if (window.location.protocol === 'https:') {
+          setTimeout(function() {
+            window.location.protocol = 'http:';
+          }, 5000);
+        } else {
+          // Just reload normally after 10 seconds
+          setTimeout(function() {
+            window.location.reload();
+          }, 10000);
+        }
+      }
+    }, 5000);
+  </script>
 </body>
 
 </html>
