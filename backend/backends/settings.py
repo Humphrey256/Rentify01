@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'https://rentify01-yfnu.onrender.com,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'rentify-1-d4gk.onrender.com,rentify01-yfnu.onrender.com,localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -139,12 +139,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://10.10.162.38:3000',
-    'https://your-production-domain.com',
+    'https://rentify-1-d4gk.onrender.com',
+    'https://rentify01-yfnu.onrender.com',
 ]
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
     'https://rentify01-yfnu.onrender.com',
+    'https://rentify-1-d4gk.onrender.com',
 ]
 
 # REST framework settings
