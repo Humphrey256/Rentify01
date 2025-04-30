@@ -1,37 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import axios from 'axios';
+import axiosInstance from '../utils/api';
 
 const ManageProducts = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [loading, setLoading] = useState(true); // Added loading state
-  const [searchTerm, setSearchTerm] = useState(''); // Added search term state
-  const [filterCategory, setFilterCategory] = useState(''); // Added filter category state
-  const [activeProduct, setActiveProduct] = useState(null); // Track active product for modal
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [activeProduct, setActiveProduct] = useState(null);
+
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
-      navigate('/login'); // Redirect non-admin users to the login page
+      navigate('/login');
       return;
     }
 
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/rentals/', {
+        const response = await axiosInstance.get('/api/rentals/', {
           headers: {
-            'Authorization': `Token ${user.token}`, // Include the authentication token
+            'Authorization': `Bearer ${user.token}`,
           },
         });
         setProducts(response.data);
       } catch (error) {
         console.error('Error fetching products:', error);
-        // You can also display an error message here if necessary
       } finally {
-        setLoading(false); // Stop loading once products are fetched
+        setLoading(false);
       }
     };
 
@@ -40,9 +42,9 @@ const ManageProducts = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/rentals/${id}/`, {
+      await axiosInstance.delete(`/api/rentals/${id}/`, {
         headers: {
-          'Authorization': `Token ${user.token}`, // Include the authentication token
+          'Authorization': `Bearer ${user.token}`,
         },
       });
       setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
@@ -75,10 +77,10 @@ const ManageProducts = () => {
         formData.append('image', editingProduct.image);
       }
 
-      await axios.put(`http://localhost:8000/api/rentals/${editingProduct.id}/`, formData, {
+      await axiosInstance.put(`/api/rentals/${editingProduct.id}/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${user.token}`, // Include the authentication token
+          'Authorization': `Bearer ${user.token}`,
         },
       });
 
@@ -117,17 +119,17 @@ const ManageProducts = () => {
   });
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>; // Render loading message or spinner
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative overflow-y-auto"> {/* Added overflow-y-auto for scrolling */}
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative overflow-y-auto">
       <h1 className="text-xl font-bold mb-4 text-center sm:text-left">Manage Products</h1>
 
       {/* Add Product Button (Small Screens Only) */}
-      <div className="mb-4 sm:block md:hidden"> {/* Added a wrapper for spacing */}
+      <div className="mb-4 sm:block md:hidden">
         <button
-          onClick={() => navigate('/add-product')} // Navigate to the Add Product page
+          onClick={() => navigate('/add-product')}
           className="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 w-full sm:w-auto"
         >
           Add Product
@@ -229,15 +231,15 @@ const ManageProducts = () => {
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white shadow-lg rounded p-4">
               <img
-                src={product.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
+                src={product.image || `${API_BASE}/media/default-placeholder.png`}
                 alt={product.name || 'Product Image'}
-                className="w-full h-48 object-cover mb-4 rounded-lg" // Set fixed height and maintain aspect ratio
+                className="w-full h-48 object-cover mb-4 rounded-lg"
               />
               <h2 className="text-lg font-semibold">{product.name}</h2>
               <p className="font-bold text-md mt-2">${product.price}/day</p>
               <p
                 className="text-blue-600 cursor-pointer hover:underline mt-2"
-                onClick={() => setActiveProduct(product)} // Set active product for modal
+                onClick={() => setActiveProduct(product)}
               >
                 View Details
               </p>
@@ -257,20 +259,20 @@ const ManageProducts = () => {
           ))}
         </div>
       )}
-      {activeProduct && ( // Display active product details in a modal
+      {activeProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 mt-16">
           <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto max-h-[calc(100vh-4rem)]">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-              onClick={() => setActiveProduct(null)} // Close modal
+              onClick={() => setActiveProduct(null)}
             >
               X
             </button>
             <h2 className="text-lg font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              src={activeProduct.image || `${API_BASE}/media/default-placeholder.png`}
               alt={activeProduct.name || 'Product Image'}
-              className="w-full h-auto object-contain mb-4 rounded-lg" // Ensure full image is displayed
+              className="w-full h-auto object-contain mb-4 rounded-lg"
             />
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-md mt-4">${activeProduct.price}/day</p>

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import { ToastContainer, toast } from 'react-toastify';
 import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 import 'react-toastify/dist/ReactToastify.css';
-import API_BASE_URL from '../utils/api';
+import axiosInstance from '../utils/api';
 
 const BookRental = () => {
     const { rentalId } = useParams();
     const { user } = useUser();
     const navigate = useNavigate();
     const [rental, setRental] = useState(null);
+
+    // Get the API base URL for images
+    const API_BASE = axiosInstance.defaults.baseURL;
 
     useEffect(() => {
         // Redirect to login if user is not authenticated
@@ -43,8 +45,8 @@ const BookRental = () => {
                     throw new Error('Invalid rental ID. Please check the URL or try again.');
                 }
 
-                const response = await axios.get(`http://localhost:8000/api/rentals/${rentalId}/`, {
-                    headers: { Authorization: `Token ${user.token}` },
+                const response = await axiosInstance.get(`/api/rentals/${rentalId}/`, {
+                    headers: { Authorization: `Bearer ${user.token}` },
                 });
 
                 setRental(response.data);
@@ -154,8 +156,8 @@ const BookRental = () => {
 
         try {
             // Check latest availability before proceeding
-            const availabilityCheck = await axios.get(`http://localhost:8000/api/rentals/${rentalId}/`, {
-                headers: { Authorization: `Token ${user.token}` },
+            const availabilityCheck = await axiosInstance.get(`/api/rentals/${rentalId}/`, {
+                headers: { Authorization: `Bearer ${user.token}` },
             });
 
             if (!availabilityCheck.data.is_available) {
@@ -165,8 +167,8 @@ const BookRental = () => {
                 return;
             }
 
-            const response = await axios.post(`http://localhost:8000/api/bookings/`, bookingData, {
-                headers: { Authorization: `Token ${user.token}` },
+            const response = await axiosInstance.post(`/api/bookings/`, bookingData, {
+                headers: { Authorization: `Bearer ${user.token}` },
             });
 
             const { data } = response;
@@ -200,11 +202,11 @@ const BookRental = () => {
     };
 
     const flutterwaveConfig = paymentData && {
-        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY, // Ensure this key is set in your .env file
-        tx_ref: `tx_${Date.now()}`, // Generate a unique transaction reference
+        public_key: process.env.REACT_APP_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: `tx_${Date.now()}`,
         amount: paymentData.amount,
         currency: paymentData.currency || 'USD',
-        payment_options: 'card, mobilemoney, ussd', // Specify payment options
+        payment_options: 'card, mobilemoney, ussd',
         customer: {
             email: paymentData.customer?.email || 'example@example.com',
             phonenumber: paymentData.customer?.phonenumber || '0000000000',
@@ -213,7 +215,7 @@ const BookRental = () => {
         customizations: {
             title: 'Rental Payment',
             description: `Payment for rental: ${rental?.name || 'Rental'}`,
-            logo: 'https://example.com/logo.png', // Replace with your logo URL
+            logo: 'https://example.com/logo.png',
         },
         callback: async (response) => {
             setIsPaymentLoading(true);
@@ -222,10 +224,10 @@ const BookRental = () => {
             if (response.status === 'successful') {
                 toast.success('Payment successful! Confirming booking...');
                 try {
-                    await axios.post(
-                        `${API_BASE_URL}/bookings/confirm/`,
+                    await axiosInstance.post(
+                        `/bookings/confirm/`,
                         { tx_ref: response.tx_ref },
-                        { headers: { Authorization: `Token ${user.token}` } }
+                        { headers: { Authorization: `Bearer ${user.token}` } }
                     );
                     navigate('/bookings/success', {
                         state: {
@@ -242,7 +244,7 @@ const BookRental = () => {
                 toast.error('Payment failed. Please try again.');
             }
             setIsPaymentLoading(false);
-            closePaymentModal(); // Close the payment modal
+            closePaymentModal();
         },
         onclose: () => {
             toast.warning('Payment window closed. Please complete your payment.');

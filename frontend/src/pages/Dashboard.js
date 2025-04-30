@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
-import { BookOpen, History, CreditCard, User } from 'lucide-react'; // Importing icons
+import { BookOpen, History, CreditCard, User } from 'lucide-react';
+import axiosInstance from '../utils/api';
 
 const Dashboard = ({ isSidebarCollapsed }) => {
   const { user } = useUser();
@@ -15,13 +15,16 @@ const Dashboard = ({ isSidebarCollapsed }) => {
   const [isRentalHistoryOpen, setIsRentalHistoryOpen] = useState(false);
   const [isRecentPaymentsOpen, setIsRecentPaymentsOpen] = useState(false);
 
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         console.log('Fetching user data...');
-        const response = await axios.get(`http://localhost:8000/api/auth/users/${user.id}/`, {
+        const response = await axiosInstance.get(`/api/auth/users/${user.id}/`, {
           headers: {
-            'Authorization': `Token ${user.token}`,
+            'Authorization': `Bearer ${user.token}`,
           },
         });
         console.log('User data:', response.data);
@@ -37,9 +40,9 @@ const Dashboard = ({ isSidebarCollapsed }) => {
     const fetchActiveBookings = async () => {
       try {
         console.log('Fetching active bookings...');
-        const response = await axios.get(`http://localhost:8000/api/bookings/active/`, {
+        const response = await axiosInstance.get(`/api/bookings/active/`, {
           headers: {
-            'Authorization': `Token ${user.token}`,
+            'Authorization': `Bearer ${user.token}`,
           },
         });
         console.log('Active bookings:', response.data);
@@ -53,9 +56,9 @@ const Dashboard = ({ isSidebarCollapsed }) => {
     const fetchRentalHistory = async () => {
       try {
         console.log('Fetching rental history...');
-        const response = await axios.get(`http://localhost:8000/api/bookings/history/`, {
+        const response = await axiosInstance.get(`/api/bookings/history/`, {
           headers: {
-            'Authorization': `Token ${user.token}`,
+            'Authorization': `Bearer ${user.token}`,
           },
         });
         console.log('Rental history:', response.data);
@@ -75,10 +78,10 @@ const Dashboard = ({ isSidebarCollapsed }) => {
 
   const handleCancelBooking = async (bookingId) => {
     try {
-      const response = await axios.post(
-        `http://localhost:8000/api/bookings/cancel/`,
+      const response = await axiosInstance.post(
+        `/api/bookings/cancel/`,
         { booking_id: bookingId },
-        { headers: { Authorization: `Token ${user.token}` } }
+        { headers: { Authorization: `Bearer ${user.token}` } }
       );
       alert(response.data.message);
       setActiveBookings((prevBookings) => prevBookings.filter((booking) => booking.id !== bookingId));
@@ -101,13 +104,13 @@ const Dashboard = ({ isSidebarCollapsed }) => {
     }
 
     try {
-      await axios.put(
-        `http://localhost:8000/api/bookings/${editingBooking.id}/`,
+      await axiosInstance.put(
+        `/api/bookings/${editingBooking.id}/`,
         {
           start_date: editingBooking.start_date,
           end_date: editingBooking.end_date,
         },
-        { headers: { Authorization: `Token ${user.token}` } }
+        { headers: { Authorization: `Bearer ${user.token}` } }
       );
 
       setActiveBookings((prevBookings) =>
@@ -121,11 +124,6 @@ const Dashboard = ({ isSidebarCollapsed }) => {
       console.error('Error updating booking:', error);
       alert('Failed to update booking.');
     }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setEditingBooking((prevBooking) => ({ ...prevBooking, [name]: value }));
   };
 
   return (
@@ -181,7 +179,7 @@ const Dashboard = ({ isSidebarCollapsed }) => {
                         <div key={booking.id} className="bg-gray-50 p-4 rounded shadow-sm flex flex-col md:flex-row items-center">
                           <div className="w-full md:w-1/3">
                             <img
-                              src={booking.rental?.image || 'http://localhost:8000/media/default-placeholder.png'} // Use the correct image URL
+                              src={booking.rental?.image || `${API_BASE}/media/default-placeholder.png`}
                               alt={booking.rental?.name || 'Rental Image'}
                               className="w-full h-32 object-cover rounded"
                             />

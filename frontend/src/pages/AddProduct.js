@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import axios from 'axios';
+import axiosInstance from '../utils/api';
 
 const AddProduct = () => {
   const { user } = useUser();
@@ -15,6 +15,9 @@ const AddProduct = () => {
     image: null,
   });
   const [error, setError] = useState(null);
+
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,8 +60,8 @@ const AddProduct = () => {
       }
 
       const token = localStorage.getItem('accessToken');
-      
-      await axios.post('http://localhost:8000/api/rentals/', formDataToSend, {
+
+      await axiosInstance.post('/api/rentals/', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
@@ -73,7 +76,7 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 flex items-center justify-center"> {/* Added mt-16 to start below the navbar */}
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 flex items-center justify-center">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Add Product</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
@@ -146,7 +149,7 @@ const AddProduct = () => {
             src={
               formData.image instanceof File
                 ? URL.createObjectURL(formData.image)
-                : 'http://localhost:8000/media/default-placeholder.png' // Fallback image
+                : `${API_BASE}/media/default-placeholder.png`
             }
             alt="Preview"
             className="w-full h-40 object-cover mb-4 rounded-lg"

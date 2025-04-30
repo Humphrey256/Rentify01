@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import { Bell, Check, CheckCircle, Filter, Calendar, Clock } from 'lucide-react';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
+import axiosInstance from '../utils/api';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -34,8 +34,8 @@ const Notifications = () => {
   const fetchNotifications = () => {
     if (user && user.token) {
       setIsLoading(true);
-      axios.get('http://localhost:8000/api/notifications/', {
-        headers: { Authorization: `Token ${user.token}` }
+      axiosInstance.get('/api/notifications/', {
+        headers: { Authorization: `Bearer ${user.token}` }
       })
         .then(res => {
           // Dispatch event to update sidebar after getting notifications
@@ -59,9 +59,9 @@ const Notifications = () => {
   }, [user]);
 
   const markAsRead = (id) => {
-    axios.post('http://localhost:8000/api/notifications/',
+    axiosInstance.post('/api/notifications/',
       { id },
-      { headers: { Authorization: `Token ${user.token}` } }
+      { headers: { Authorization: `Bearer ${user.token}` } }
     )
       .then(response => {
         // Update local state to show the checkmark without hiding the message
@@ -83,9 +83,9 @@ const Notifications = () => {
   const markAllAsRead = () => {
     if (!user?.token || unreadNotifications.length === 0) return;
 
-    axios.post('http://localhost:8000/api/notifications/mark-all-read/',
+    axiosInstance.post('/api/notifications/mark-all-read/',
       {},
-      { headers: { Authorization: `Token ${user.token}` } }
+      { headers: { Authorization: `Bearer ${user.token}` } }
     )
       .then(() => {
         // Update all notifications to read
