@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate
-from .models import User, Notification
+from .models import User
+from notifications_app.models import Notification
 from .serializers import UserSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -26,8 +27,7 @@ def register(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
-    # Always set role to 'user' for registration, do not accept from frontend
-    role = 'user'
+    role = request.data.get('role', 'user')
 
     if not all([username, email, password]):
         return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -43,9 +43,13 @@ def register(request):
         user.role = role
         user.save()
 
-        # Do not log the user in automatically; require login after registration
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
         return Response({
-            "message": "User created successfully. Please log in.",
+            "message": "User created successfully",
+            "token": access_token,
+            "refresh": str(refresh),
             "role": user.role
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
