@@ -211,7 +211,7 @@ SOCIAL_AUTH_PIPELINE = (
 # OAuth redirect URLs
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/auth-success'
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://rentify-1-d4gk.onrender.com/login'
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/register-success'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/login'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Set to True for production HTTPS
 
 # Google OAuth2: Ensure the redirect URI matches what is registered in Google Cloud Console

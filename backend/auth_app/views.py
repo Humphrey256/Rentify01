@@ -174,3 +174,14 @@ def instagram_exchange(request):
     # Optionally, save access_data['access_token'] to the user's profile here
 
     return Response({'access_token': access_data.get('access_token'), 'user_id': access_data.get('user_id')})
+
+def get_extra_emails(strategy, details, response, user=None, *args, **kwargs):
+    # For Google, emails are in response['emails'] if available
+    emails = []
+    if 'emails' in response:
+        emails = [email['value'] for email in response['emails']]
+    elif 'email' in response:
+        emails = [response['email']]
+    # Store in session or pass to the next pipeline step
+    strategy.session_set('extra_emails', emails)
+    return {'extra_emails': emails}
