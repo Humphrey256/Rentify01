@@ -26,7 +26,8 @@ def register(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
-    role = request.data.get('role', 'user')
+    # Always set role to 'user' for registration, do not accept from frontend
+    role = 'user'
 
     if not all([username, email, password]):
         return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -42,13 +43,9 @@ def register(request):
         user.role = role
         user.save()
 
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-
+        # Do not log the user in automatically; require login after registration
         return Response({
-            "message": "User created successfully",
-            "token": access_token,
-            "refresh": str(refresh),
+            "message": "User created successfully. Please log in.",
             "role": user.role
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
