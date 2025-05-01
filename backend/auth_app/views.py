@@ -1,6 +1,6 @@
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, Notification
 from .serializers import UserSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
