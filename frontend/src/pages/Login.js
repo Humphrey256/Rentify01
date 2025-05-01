@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
@@ -13,9 +13,39 @@ const Login = () => {
   const [error, setError] = useState('');
   const { setUser } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Get the API base URL for social auth
   const API_BASE = axiosInstance.defaults.baseURL;
+
+  // Handle tokens from social auth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const refresh = params.get('refresh');
+    const role = params.get('role');
+    const social = params.get('social');
+
+    if (token && refresh) {
+      // You may want to fetch user info from backend using the token, or just store it
+      localStorage.setItem('accessToken', token);
+      localStorage.setItem('refreshToken', refresh);
+      if (role) localStorage.setItem('role', role);
+
+      setUser({ token, role }); // Optionally fetch user details here
+
+      toast.success('Login successful!');
+
+      // Redirect based on role
+      if (role === 'admin') {
+        navigate('/manage-products');
+      } else if (role === 'user') {
+        navigate('/products');
+      } else {
+        navigate('/');
+      }
+    }
+  }, [location, setUser, navigate]);
 
   const validateForm = () => {
     if (!username.trim()) {
@@ -41,10 +71,7 @@ const Login = () => {
     }
 
     try {
-      console.log('Sending login request with:', { username, password });
       const response = await axiosInstance.post('/api/auth/login/', { username, password });
-      console.log('Login response:', response.data);
-
       const { id, username: userUsername, email, role, token, refresh } = response.data;
       const userData = { id, username: userUsername, email, role, token };
 
@@ -67,14 +94,12 @@ const Login = () => {
         navigate('/');
       }
     } catch (error) {
-      console.error('Login failed:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Login failed. Please check your credentials.');
     }
   };
 
   // Handle Google login
   const handleGoogleLogin = () => {
-    console.log('Initiating Google login');
     window.location.href = `${API_BASE}/social-auth/login/google-oauth2/`;
   };
 
