@@ -126,7 +126,8 @@ def oauth_redirect(backend, user, response, *args, **kwargs):
 
     if not user or not user.is_authenticated:
         logger.warning("Unauthenticated user attempted OAuth redirect")
-        return redirect('http://localhost:3000/login')
+        # Redirect to deployed login page
+        return redirect('https://rentify-1-d4gk.onrender.com/login')
 
     try:
         # Always assign 'user' role for OAuth logins
@@ -139,10 +140,11 @@ def oauth_redirect(backend, user, response, *args, **kwargs):
 
         logger.info(f"OAuth redirect successful for user: {user.username}, role: {role}, token: {token}")
 
-        return redirect(f'http://localhost:3000/auth-success?token={token}&username={user.username}&role={role}')
+        # Redirect to deployed login page after registration/login
+        return redirect(f'https://rentify-1-d4gk.onrender.com/login')
     except Exception as e:
         logger.error(f"OAuth redirect error: {str(e)}")
-        return redirect('http://localhost:3000/login')
+        return redirect('https://rentify-1-d4gk.onrender.com/login')
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
