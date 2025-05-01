@@ -209,10 +209,13 @@ SOCIAL_AUTH_PIPELINE = (
 )
 
 # OAuth redirect URLs
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/auth-success'
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login'
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'http://localhost:3000/register-success'
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/auth-success'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://rentify-1-d4gk.onrender.com/login'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/register-success'
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Set to True for production HTTPS
+
+# Google OAuth2: Ensure the redirect URI matches what is registered in Google Cloud Console
+SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://rentify-1-d4gk.onrender.com/social-auth/complete/google-oauth2/'
 
 # Custom user model
 AUTH_USER_MODEL = 'auth_app.User'
