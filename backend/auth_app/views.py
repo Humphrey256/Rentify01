@@ -119,32 +119,30 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 def oauth_redirect(backend, user, response, *args, **kwargs):
-    from rest_framework_simplejwt.tokens import RefreshToken
     from django.shortcuts import redirect
+    import logging
 
     logger = logging.getLogger(__name__)
 
-    if not user or not user.is_authenticated:
-        logger.warning("Unauthenticated user attempted OAuth redirect")
-        # Redirect to deployed login page
-        return redirect('https://rentify-1-d4gk.onrender.com/login')
+    # Always redirect to the frontend login page
+    FRONTEND_LOGIN_URL = "https://rentify01-yfnu.onrender.com/login"  # <-- Use your actual frontend URL
 
     try:
+        if not user or not user.is_authenticated:
+            logger.warning("Unauthenticated user attempted OAuth redirect")
+            return redirect(FRONTEND_LOGIN_URL)
+
         # Always assign 'user' role for OAuth logins
         user.role = 'user'
         user.save()
 
-        refresh = RefreshToken.for_user(user)
-        token = str(refresh.access_token)
-        role = user.role
+        logger.info(f"OAuth redirect successful for user: {user.username}, role: {user.role}")
 
-        logger.info(f"OAuth redirect successful for user: {user.username}, role: {role}, token: {token}")
-
-        # Redirect to deployed login page after registration/login
-        return redirect(f'https://rentify-1-d4gk.onrender.com/login')
+        # Redirect to frontend login page after registration/login
+        return redirect(FRONTEND_LOGIN_URL)
     except Exception as e:
         logger.error(f"OAuth redirect error: {str(e)}")
-        return redirect('https://rentify-1-d4gk.onrender.com/login')
+        return redirect(FRONTEND_LOGIN_URL)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
