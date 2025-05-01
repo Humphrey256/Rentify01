@@ -132,11 +132,9 @@ def oauth_redirect(backend, user, response, *args, **kwargs):
             logger.warning("Unauthenticated user attempted OAuth redirect")
             return redirect(FRONTEND_LOGIN_URL)
 
-        # Always assign 'user' role for OAuth logins
         user.role = 'user'
         user.save()
 
-        # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
