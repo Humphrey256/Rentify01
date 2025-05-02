@@ -27,9 +27,9 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-16">
+    <div className="min-h-screen bg-gray-100 pt-16 relative z-0">
       {/* Hero Section */}
-      <section className="bg-yellow-600 text-white py-20">
+      <section className="bg-yellow-600 text-white py-20 relative z-10">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl font-bold mb-4">Welcome to Rentify</h1>
           <p className="text-xl mb-8">Your one-stop solution for renting products</p>
@@ -40,7 +40,7 @@ const Home = () => {
       </section>
 
       {/* Products Section */}
-      <section className="py-20">
+      <section className="py-20 relative z-10">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">Available Products</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -50,15 +50,15 @@ const Home = () => {
               products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white shadow-lg rounded-lg p-4 transition-transform transform hover:scale-105 cursor-pointer"
+                  className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative cursor-pointer"
                   onClick={() => setActiveProduct(product)}
                 >
                   <img
-                    src={`${API_BASE}/media/rentals/${typeof product.image === 'string' ? product.image.split('/').pop() : product.image}`}
-                    alt={product.name}
+                    src={product.image || 'http://localhost:8000/media/default-placeholder.png'}
+                    alt={product.name || 'Product Image'}
                     className="w-full h-48 object-cover mb-4 rounded-lg"
                   />
-                  <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
                   <p className="font-bold text-lg mt-2">${product.price}/day</p>
                 </div>
               ))
@@ -69,25 +69,28 @@ const Home = () => {
 
       {/* Modal Section */}
       {activeProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 mt-16">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto max-h-[calc(100vh-4rem)]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto"
+            style={{ marginTop: '5rem', maxHeight: 'calc(100vh - 8rem)' }}
+          >
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setActiveProduct(null)}
             >
-              X
+              &times;
             </button>
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={`${API_BASE}/media/rentals/${typeof activeProduct.image === 'string' ? activeProduct.image.split('/').pop() : activeProduct.image}`}
-              alt={activeProduct.name}
+              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              alt={activeProduct.name || 'Product Image'}
               className="w-full h-auto object-contain mb-4 rounded-lg"
             />
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
             <button
               onClick={() => navigate('/login')}
-              className="bg-yellow-600 text-white p-3 mt-4 w-full rounded hover:bg-yellow-700"
+              className="bg-yellow-600 text-white px-4 py-2 rounded mt-4 hover:bg-yellow-700 w-full"
             >
               Rent Now
             </button>

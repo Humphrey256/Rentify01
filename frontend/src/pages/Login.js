@@ -104,7 +104,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    // Added pt-16 for small screens and adjust min-h for proper centering
+    <div className="min-h-[calc(100vh-4rem)] pt-16 md:pt-0 md:min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
         <h1 className="text-2xl font-bold mb-4">Login</h1>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
