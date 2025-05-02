@@ -103,15 +103,6 @@ const Login = () => {
     window.location.href = `${API_BASE}/social-auth/login/google-oauth2/`;
   };
 
-  // Handle Instagram login
-  const handleInstagramLogin = () => {
-    const instagramClientId = process.env.REACT_APP_INSTAGRAM_CLIENT_ID || "YOUR_CLIENT_ID";
-    const redirectUri = encodeURIComponent(`${window.location.origin}/instagram-callback`);
-    const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${instagramClientId}&redirect_uri=${redirectUri}&scope=user_profile,user_media&response_type=code`;
-
-    window.location.href = instagramAuthUrl;
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
@@ -177,19 +168,6 @@ const Login = () => {
               <path fill="none" d="M1 1h22v22H1z" />
             </svg>
             Sign in with Google
-          </button>
-
-          <button
-            type="button"
-            onClick={handleInstagramLogin}
-            className="w-full bg-white border border-gray-300 p-2 rounded flex items-center justify-center hover:bg-gray-50 mt-2"
-          >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-              <path fill="#E4405F" d="M12 2.163c3.204 0 3.584.012 4.85.07 1.17.06 1.805.249 2.228.415.562.217.96.477 1.38.896.419.42.679.819.896 1.381.164.422.356 1.057.413 2.227.058 1.265.07 1.645.07 4.849s-.012 3.584-.07 4.849c-.059 1.17-.249 1.805-.413 2.227a3.908 3.908 0 01-.896 1.381 3.911 3.911 0 01-1.38.896c-.423.164-1.058.356-2.228.413-1.266.058-1.645.07-4.85.07s-3.584-.012-4.849-.07c-1.17-.059-1.805-.249-2.227-.413a3.911 3.911 0 01-1.381-.896 3.908 3.908 0 01-.896-1.381c-.164-.422-.356-1.057-.413-2.227-.058-1.265-.07-1.645-.07-4.849s.012-3.584.07-4.849c.059-1.17.249-1.805.413-2.227.217-.562.477-.96.896-1.381.419-.419.819-.679 1.381-.896.422-.164 1.057-.356 2.227-.413 1.265-.058 1.645-.07 4.849-.07z" />
-              <path fill="#E4405F" d="M12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8z" />
-              <circle fill="#E4405F" cx="18.406" cy="5.594" r="1.44" />
-            </svg>
-            Sign in with Instagram
           </button>
         </div>
       </div>
