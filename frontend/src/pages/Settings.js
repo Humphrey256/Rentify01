@@ -1,117 +1,169 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
-
-const INSTAGRAM_CLIENT_ID = 'YOUR_INSTAGRAM_APP_ID'; // Replace with your Instagram App ID
-const REDIRECT_URI = 'http://localhost:3000/instagram-auth'; // Replace with your redirect URI
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axiosInstance from '../utils/api';
 
 const Settings = () => {
-  const { user, setUser } = useUser();
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
+  const { user, setUser, refreshUserData } = useUser();
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setUser({ name, email });
-    alert('Settings saved successfully!');
+    setLoading(true);
+
+    try {
+      const response = await axiosInstance.put('/api/users/profile/', {
+        name,
+        email
+      });
+
+      // Update the user context with new data
+      setUser({ ...user, name, email });
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
+
     if (newPassword !== confirmPassword) {
-      alert('New passwords do not match!');
+      toast.error('New passwords do not match!');
       return;
     }
-    // TODO: Implement backend call to change password
-    alert('Password changed successfully!');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-  };
 
-  const handleInstagramConnect = () => {
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user_profile,user_media&response_type=code`;
-    window.location.href = authUrl;
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await axiosInstance.post('/api/auth/change-password/', {
+        current_password: currentPassword,
+        new_password: newPassword
+      });
+
+      toast.success('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Error changing password:', error);
+      const errorMsg = error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Failed to change password';
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center mt-16">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Settings</h1>
-        <form onSubmit={handleSave} className="bg-white p-6 rounded shadow-md mb-6">
+    <div className="container pt-16 pb-8 px-4 lg:ml-48 transition-all duration-300">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <form onSubmit={handleSave} className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Account Information</h2>
           <div className="mb-4">
-            <label className="block text-gray-700">Name</label>
+            <label className="block text-gray-700 mb-1">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              className="w-full p-2 border border-gray-300 rounded"
               required
+              disabled={loading}
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
+            <label className="block text-gray-700 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              className="w-full p-2 border border-gray-300 rounded"
               required
+              disabled={loading}
             />
           </div>
-          <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-            Save Changes
+          <button
+            type="submit"
+            className={`w-full ${loading ? 'bg-blue-300' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2 rounded transition flex justify-center items-center`}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                Saving...
+              </>
+            ) : 'Save Changes'}
           </button>
         </form>
 
-        <form onSubmit={handleChangePassword} className="bg-white p-6 rounded shadow-md mb-6">
-          <h2 className="text-lg font-semibold mb-4 text-center">Change Password</h2>
+        <form onSubmit={handleChangePassword} className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Security</h2>
           <div className="mb-4">
-            <label className="block text-gray-700">Current Password</label>
+            <label className="block text-gray-700 mb-1">Current Password</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              className="w-full p-2 border border-gray-300 rounded"
               required
+              disabled={loading}
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">New Password</label>
+            <label className="block text-gray-700 mb-1">New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              className="w-full p-2 border border-gray-300 rounded"
               required
+              minLength={8}
+              disabled={loading}
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Confirm New Password</label>
+            <label className="block text-gray-700 mb-1">Confirm New Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1"
+              className="w-full p-2 border border-gray-300 rounded"
               required
+              disabled={loading}
             />
           </div>
-          <button type="submit" className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
-            Change Password
+          <button
+            type="submit"
+            className={`w-full ${loading ? 'bg-green-300' : 'bg-green-500 hover:bg-green-600'} text-white p-2 rounded transition flex justify-center items-center`}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                Updating...
+              </>
+            ) : 'Change Password'}
           </button>
         </form>
-
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={handleInstagramConnect}
-            className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600"
-          >
-            Connect Instagram
-          </button>
-        </div>
       </div>
+      <ToastContainer position="bottom-right" />
     </div>
   );
 };

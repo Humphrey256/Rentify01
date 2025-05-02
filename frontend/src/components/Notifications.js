@@ -48,30 +48,40 @@ const Notifications = () => {
   };
 
   return (
-    <div className="mt-16">
-      <h2 className="text-xl font-bold mb-4">Notifications</h2>
+    // Updated container classes to match Profile component's positioning
+    <div className="container pt-16 pb-8 px-4 lg:ml-26 transition-all duration-300">
+      <h2 className="text-2xl font-bold mb-6">Notifications</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
-      <ul>
-        {notifications.map((notification) => (
-          <li key={notification.id} className="mb-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <p>{notification.message}</p>
-                {notification.data && (
-                  <pre className="text-sm text-gray-600">{JSON.stringify(notification.data, null, 2)}</pre>
-                )}
-              </div>
-              <button
-                onClick={() => markAsRead(notification.id)}
-                className="text-blue-500 hover:underline"
-              >
-                Mark as Read
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {notifications.length === 0 && !error && <p>No new notifications.</p>}
+
+      {/* Adding card styling to match profile */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        {notifications.length === 0 && !error ? (
+          <p className="text-gray-500">No new notifications.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {notifications.map((notification) => (
+              <li key={notification.id} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">{notification.message}</p>
+                    {notification.data && (
+                      <pre className="text-sm text-gray-600 mt-1 bg-gray-50 p-2 rounded">
+                        {JSON.stringify(notification.data, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => markAsRead(notification.id)}
+                    className="ml-4 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  >
+                    Mark as Read
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

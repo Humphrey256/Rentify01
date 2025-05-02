@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register, login, logout, UserListView, UserDetailView, oauth_redirect, instagram_exchange
+from .views import register, login, logout, UserListView, UserDetailView, oauth_redirect, instagram_exchange, instagram_status
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
     path('oauth-redirect/', oauth_redirect, name='oauth_redirect'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('instagram/exchange/', instagram_exchange, name='instagram_exchange'),  # Instagram OAuth exchange endpoint
+    path('instagram-status/', instagram_status, name='instagram_status'),
 ]

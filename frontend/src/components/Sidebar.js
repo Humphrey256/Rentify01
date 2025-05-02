@@ -210,6 +210,12 @@ const Sidebar = () => {
               <PlusCircle size={22} className="text-green-400" /> {!isCollapsed && <span>Add Product</span>}
             </Link>
           )}
+          <Link
+            to="/profile"
+            className={`flex items-center gap-3 px-4 py-2 hover:bg-gray-800 rounded-lg transition ${location.pathname === '/profile' ? 'bg-gray-800' : ''}`}
+          >
+            <User size={22} className="text-cyan-400" /> {!isCollapsed && <span>Profile</span>}
+          </Link>
         </nav>
       </div>
     </>

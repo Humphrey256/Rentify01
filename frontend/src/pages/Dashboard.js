@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { BookOpen, History, CreditCard, User } from 'lucide-react';
 import axiosInstance from '../utils/api';
+import InstagramWidget from '../components/InstagramWidget';
 
 const Dashboard = ({ isSidebarCollapsed }) => {
   const { user } = useUser();
@@ -323,6 +324,18 @@ const Dashboard = ({ isSidebarCollapsed }) => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Instagram Widget */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Other dashboard widgets */}
+
+            {/* Instagram widget - takes 1/3 of the row on desktop */}
+            <div className="md:col-span-1">
+              <InstagramWidget />
+            </div>
+
+            {/* Other widgets */}
           </div>
         </div>
       )}

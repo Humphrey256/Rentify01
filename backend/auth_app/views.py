@@ -158,26 +158,77 @@ def unread_notifications(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def instagram_exchange(request):
+    """Exchange Instagram auth code for access token"""
     code = request.data.get('code')
     if not code:
-        return Response({'error': 'Missing code'}, status=400)
+        return Response({'error': 'Missing authorization code'}, status=400)
 
+    # Instagram app credentials (from env vars)
+    client_id = os.getenv('INSTAGRAM_CLIENT_ID')
+    client_secret = os.getenv('INSTAGRAM_CLIENT_SECRET')
+    redirect_uri = os.getenv('INSTAGRAM_REDIRECT_URI', f"{request.scheme}://{request.get_host()}/instagram-callback")
+
+    # Exchange code for token
     token_url = 'https://api.instagram.com/oauth/access_token'
     data = {
-        'client_id': INSTAGRAM_CLIENT_ID,
-        'client_secret': INSTAGRAM_CLIENT_SECRET,
+        'client_id': client_id,
+        'client_secret': client_secret,
         'grant_type': 'authorization_code',
-        'redirect_uri': REDIRECT_URI,
-        'code': code,
+        'redirect_uri': redirect_uri,
+        'code': code
     }
-    resp = requests.post(token_url, data=data)
-    if resp.status_code != 200:
-        return Response({'error': 'Failed to get access token', 'details': resp.json()}, status=400)
+    
+    try:
+        response = requests.post(token_url, data=data)
+        if response.status_code != 200:
+            logger.error(f"Instagram token exchange failed: {response.text}")
+            return Response({'error': 'Failed to get access token'}, status=400)
+            
+        token_data = response.json()
+        access_token = token_data.get('access_token')
+        user_id = token_data.get('user_id')
+        
+        # Save token to user
+        user = request.user
+        user.instagram_token = access_token
+        user.instagram_user_id = user_id
+        user.save()
+        
+        return Response({'success': True})
+    except Exception as e:
+        logger.error(f"Instagram exchange error: {str(e)}")
+        return Response({'error': str(e)}, status=400)
 
-    access_data = resp.json()
-    # Optionally, save access_data['access_token'] to the user's profile here
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def instagram_status(request):
+    """Check if user has connected Instagram account"""
+    user = request.user
+    connected = hasattr(user, 'instagram_token') and bool(user.instagram_token)
+    return Response({'connected': connected})
 
-    return Response({'access_token': access_data.get('access_token'), 'user_id': access_data.get('user_id')})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def instagram_feed(request):
+    """Get Instagram posts for authenticated user"""
+    user = request.user
+    
+    if not hasattr(user, 'instagram_token') or not user.instagram_token:
+        return Response({'error': 'Instagram account not connected'}, status=400)
+    
+    try:
+        access_token = user.instagram_token
+        endpoint = f"https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token={access_token}"
+        
+        response = requests.get(endpoint)
+        if response.status_code != 200:
+            logger.error(f"Instagram API request failed: {response.text}")
+            return Response({'error': 'Failed to fetch Instagram data'}, status=400)
+        
+        return Response(response.json())
+    except Exception as e:
+        logger.error(f"Instagram feed error: {str(e)}")
+        return Response({'error': str(e)}, status=500)
 
 def get_extra_emails(strategy, details, response, user=None, *args, **kwargs):
     # For Google, emails are in response['emails'] if available

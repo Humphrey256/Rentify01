@@ -21,8 +21,11 @@ import Cancel from './pages/Cancel';
 import ReviewForm from './pages/ReviewForm';
 import AuthSuccess from './pages/AuthSuccess'; // New import
 import InstagramAuth from './pages/InstagramAuth'; // Import the new InstagramAuth page
+import InstagramFeed from './pages/InstagramFeed'; // New import
+import InstagramCallback from './pages/InstagramCallback'; // New import
 import { UserProvider, useUser } from './context/UserContext';
 import { CartProvider } from './context/CartContext';
+import Profile from './components/profile'; // Updated import
 
 const AppLayout = ({ children }) => {
   const location = useLocation();
@@ -81,6 +84,9 @@ const App = () => {
                 <Route path="/review/:rentalId" element={<ReviewForm />} />
                 <Route path="/auth-success" element={<AuthSuccess />} /> {/* New route */}
                 <Route path="/instagram-auth" element={<InstagramAuth />} /> {/* Instagram OAuth redirect handler */}
+                <Route path="/instagram-feed" element={<InstagramFeed />} /> {/* New route */}
+                <Route path="/instagram-callback" element={<InstagramCallback />} /> {/* New route */}
+                <Route path="/profile" element={<Profile />} /> {/* New route */}
               </Routes>
             </AppLayout>
           </div>
