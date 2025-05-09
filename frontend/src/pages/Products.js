@@ -24,12 +24,30 @@ const Products = () => {
       const response = await axiosInstance.get('/api/rentals/');
       console.log('Products fetched:', response.data.length);
 
-      // Add detailed product logging
+      // More aggressive debugging
+      console.log('Raw API response:', response);
+
       if (response.data.length > 0) {
         console.log('First product data:', response.data[0]);
+        // Check crucial fields
+        console.log('Product has name?', Boolean(response.data[0].name));
+        console.log('Product is_available value:', response.data[0].is_available);
+        console.log('Product image path:', response.data[0].image);
       }
 
-      setProducts(response.data);
+      // Normalize product data to ensure all expected fields exist
+      const normalizedProducts = response.data.map(product => ({
+        id: product.id,
+        name: product.name || 'Unnamed Product',
+        details: product.details || 'No description available',
+        price: product.price || 0,
+        category: product.category || '',
+        is_available: product.is_available === undefined ? true : product.is_available,
+        image: product.image || null
+      }));
+
+      console.log('Normalized products:', normalizedProducts.length);
+      setProducts(normalizedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
