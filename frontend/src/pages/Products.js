@@ -4,6 +4,7 @@ import { useUser } from '../context/UserContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../utils/api';
+import { fallbackProducts } from '../data/fallbackData';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -21,7 +22,9 @@ const Products = () => {
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
-      toast.error('Failed to load products');
+      // Use fallback products when API fails
+      setProducts(fallbackProducts);
+      toast.info('Using sample products while connecting to the server');
     }
   }, []);
 
