@@ -4,7 +4,6 @@ import { useUser } from '../context/UserContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../utils/api';
-import { fallbackProducts } from '../data/fallbackData';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -15,18 +14,21 @@ const Products = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
+
   // Fetch products from the API
   const fetchProducts = useCallback(async () => {
     try {
+      console.log('Fetching products from:', `${API_BASE}/api/rentals/`);
       const response = await axiosInstance.get('/api/rentals/');
+      console.log('Products fetched:', response.data.length);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Use fallback products when API fails
-      setProducts(fallbackProducts);
-      toast.info('Using sample products while connecting to the server');
+      toast.error('Failed to load products');
     }
-  }, []);
+  }, [API_BASE]);
 
   useEffect(() => {
     fetchProducts();
@@ -75,6 +77,19 @@ const Products = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  // Helper function to get proper image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      return `${API_BASE}/media/default-placeholder.png`;
+    }
+    // If image path is already a full URL, use it directly
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Otherwise, prepend the API base URL
+    return `${API_BASE}${imagePath}`;
   };
 
   // Filter products based on user role
@@ -129,7 +144,7 @@ const Products = () => {
               className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative"
             >
               <img
-                src={product.image || 'http://localhost:8000/media/default-placeholder.png'}
+                src={getImageUrl(product.image)}
                 alt={product.name || 'Product Image'}
                 className="w-full h-48 object-cover mb-4 rounded-lg"
               />
@@ -189,7 +204,7 @@ const Products = () => {
             {/* Product Details */}
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              src={getImageUrl(activeProduct.image)}
               alt={activeProduct.name || 'Product Image'}
               className="w-full h-auto object-contain mb-4 rounded-lg"
             />
