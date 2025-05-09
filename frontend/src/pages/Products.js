@@ -23,6 +23,12 @@ const Products = () => {
       console.log('Fetching products from:', `${API_BASE}/api/rentals/`);
       const response = await axiosInstance.get('/api/rentals/');
       console.log('Products fetched:', response.data.length);
+
+      // Add detailed product logging
+      if (response.data.length > 0) {
+        console.log('First product data:', response.data[0]);
+      }
+
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -94,6 +100,11 @@ const Products = () => {
 
   // Filter products based on user role
   const filteredProducts = products.filter((product) => {
+    // For debug purposes
+    if (products.length > 0 && product.id === products[0].id) {
+      console.log('Filtering product:', product);
+    }
+
     // For regular users, exclude unavailable products
     if (user?.role !== 'admin') {
       return (
@@ -109,6 +120,12 @@ const Products = () => {
       (filterCategory ? product.category === filterCategory : true)
     );
   });
+
+  // Add debugging for filtered results
+  useEffect(() => {
+    console.log('Total products:', products.length);
+    console.log('Filtered products:', filteredProducts.length);
+  }, [products, filteredProducts]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-2 md:ml-15 lg:ml-30 relative z-0">
@@ -191,7 +208,7 @@ const Products = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50">
           <div
             className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-lg relative overflow-y-auto"
-            style={{ marginTop: '5rem', maxHeight: 'calc(100vh - 8rem)' }} // Adjust '5rem' for navbar height
+            style={{ marginTop: '5rem', maxHeight: 'calc(100vh - 8rem)' }} // Adjust for navbar height
           >
             {/* Close Button */}
             <button
@@ -228,7 +245,7 @@ const Products = () => {
       <ToastContainer
         position="top-right"
         autoClose={3000}
-        style={{ zIndex: 99999, marginTop: '4rem' }} // Adjust '4rem' to match your navbar height
+        style={{ zIndex: 99999, marginTop: '4rem' }} // Adjust to match navbar height
       />
     </div>
   );
