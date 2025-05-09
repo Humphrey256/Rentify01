@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axiosInstance from '../utils/api';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ManageProducts = () => {
   const { user } = useUser();
@@ -12,9 +14,30 @@ const ManageProducts = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [activeProduct, setActiveProduct] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
   // Get the API base URL for images
   const API_BASE = axiosInstance.defaults.baseURL;
+
+  // Create a memoized fetchProducts function
+  const fetchProducts = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/api/rentals/', {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+        // Add cache-busting parameter
+        params: { _t: Date.now() }
+      });
+      setProducts(response.data);
+      setLastUpdate(Date.now());
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Error fetching products. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -22,23 +45,17 @@ const ManageProducts = () => {
       return;
     }
 
-    const fetchProducts = async () => {
-      try {
-        const response = await axiosInstance.get('/api/rentals/', {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    // Initial fetch
     fetchProducts();
-  }, [user, navigate]);
+
+    // Set up polling for updates every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchProducts();
+    }, 30000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [user, navigate, fetchProducts]);
 
   const handleDelete = async (id) => {
     try {
@@ -48,8 +65,10 @@ const ManageProducts = () => {
         },
       });
       setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
+      toast.success('Product deleted successfully');
     } catch (error) {
       console.error('Error deleting product:', error);
+      toast.error('Error deleting product. Please try again.');
     }
   };
 
@@ -62,7 +81,7 @@ const ManageProducts = () => {
 
     // Form validation
     if (!editingProduct.name || !editingProduct.price) {
-      alert('Name and Price are required.');
+      toast.error('Name and Price are required.');
       return;
     }
 
@@ -84,15 +103,13 @@ const ManageProducts = () => {
         },
       });
 
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product.id === editingProduct.id ? editingProduct : product
-        )
-      );
+      // Refresh all products to ensure we have latest data
+      fetchProducts();
       setEditingProduct(null);
+      toast.success('Product updated successfully');
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Error updating product');
+      toast.error('Error updating product. Please try again.');
     }
   };
 
@@ -125,15 +142,25 @@ const ManageProducts = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-4 mt-16 relative overflow-y-auto">
       <h1 className="text-xl font-bold mb-4 text-center sm:text-left">Manage Products</h1>
-
-      {/* Add Product Button (Small Screens Only) */}
-      <div className="mb-4 sm:block md:hidden">
+      <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => navigate('/add-product')}
-          className="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 w-full sm:w-auto"
+          className="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 w-auto"
         >
           Add Product
         </button>
+
+        <button
+          onClick={fetchProducts}
+          className="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 w-auto"
+          disabled={loading}
+        >
+          {loading ? 'Refreshing...' : 'Refresh Products'}
+        </button>
+      </div>
+
+      <div className="text-sm text-gray-500 mb-4">
+        Last updated: {new Date(lastUpdate).toLocaleTimeString()}
       </div>
 
       <div className="mb-4">
@@ -279,6 +306,7 @@ const ManageProducts = () => {
           </div>
         </div>
       )}
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 };
