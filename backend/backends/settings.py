@@ -102,7 +102,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',  # Fixed sqlite path
         }
     }
 
@@ -138,6 +138,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'https://localhost:3000',
+    'http://localhost:8000',
+    'https://localhost:8000',
     'http://10.10.162.38:3000',
     'https://rentify-1-d4gk.onrender.com',
     'https://rentify01-yfnu.onrender.com',
@@ -147,6 +150,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://rentify01-yfnu.onrender.com',
     'https://rentify-1-d4gk.onrender.com',
+    'https://localhost:8000',
 ]
 
 # REST framework settings
@@ -215,7 +219,13 @@ SOCIAL_AUTH_NEW_USER_REDIRECT_URL = 'https://rentify-1-d4gk.onrender.com/login'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Set to True for production HTTPS
 
 # Google OAuth2: Ensure the redirect URI matches what is registered in Google Cloud Console
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://rentify-1-d4gk.onrender.com/social-auth/complete/google-oauth2/'
+if DEBUG:
+    # Use HTTP for local development (not HTTPS)
+    SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:8000/social-auth/complete/google-oauth2/'
+    # Be sure to add this URI to Google Cloud Console:
+    # http://localhost:8000/social-auth/complete/google-oauth2/
+else:
+    SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://rentify-1-d4gk.onrender.com/social-auth/complete/google-oauth2/'
 
 # Custom user model
 AUTH_USER_MODEL = 'auth_app.User'
@@ -253,3 +263,13 @@ LOGGING = {
         },
     },
 }
+
+# Add detailed OAuth debugging
+if DEBUG:
+    import sys
+    LOGGING['loggers']['social_core'] = {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
+    print("Google OAuth2 Redirect URI:", SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI)
