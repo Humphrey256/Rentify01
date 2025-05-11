@@ -65,7 +65,7 @@ const Home = () => {
                     className="w-full h-48 object-cover mb-4 rounded-lg"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/media/default-placeholder.png';
+                      e.target.src = '/static/products/default-placeholder.png';
                     }}
                   />
                   <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
@@ -97,7 +97,7 @@ const Home = () => {
               className="w-full h-auto object-contain mb-4 rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/media/default-placeholder.png';
+                e.target.src = '/static/products/default-placeholder.png';
               }}
             />
             <p className="text-gray-700">{activeProduct.details}</p>
