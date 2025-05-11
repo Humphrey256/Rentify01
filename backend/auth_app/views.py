@@ -27,7 +27,8 @@ def register(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
-    role = request.data.get('role', 'user')
+    # Force role to be 'user' regardless of what was sent in the request
+    role = 'user'  # Hardcoded to 'user' - ignoring any role from request
 
     if not all([username, email, password]):
         return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)

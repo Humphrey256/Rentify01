@@ -11,7 +11,7 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    role: 'user', // Default role
+    role: 'user', // Fixed as user role only
   });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -162,16 +162,7 @@ const Register = () => {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          <select
-            name="role"
-            className="w-full p-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={formData.role}
-            onChange={handleChange}
-            disabled={isLoading}
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+          {/* Role selector removed - users can only register as "user" role */}
           <button
             type="submit"
             className={`w-full ${isLoading ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2 rounded transition-colors duration-300`}

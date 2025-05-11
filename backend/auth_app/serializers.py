@@ -29,3 +29,8 @@ class UserSerializer(serializers.ModelSerializer):
         instance.role = validated_data.get('role', instance.role)
         instance.save()
         return instance
+
+    def validate(self, data):
+        # Force role to be 'user' regardless of what was sent
+        data['role'] = 'user'  # Override any attempt to register as admin
+        return data
