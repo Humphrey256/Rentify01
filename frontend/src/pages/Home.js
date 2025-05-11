@@ -15,16 +15,26 @@ const Home = () => {
     const fetchProducts = async () => {
       try {
         const response = await axiosInstance.get('/api/rentals/');
-        // Display the first few products or filter as needed
-        const displayedProducts = response.data.slice(0, 12);
-        setProducts(displayedProducts);
+        setProducts(response.data.slice(0, 12));
       } catch (error) {
         console.error('Error fetching products:', error);
       }
     };
-
     fetchProducts();
   }, []);
+
+  // Helper function to get proper image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      return `${API_BASE}/media/default-placeholder.png`;
+    }
+    // If image path is already a full URL, use it directly
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Otherwise, prepend the API base URL
+    return `${API_BASE}${imagePath}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 pt-16 relative z-0">
@@ -54,9 +64,13 @@ const Home = () => {
                   onClick={() => setActiveProduct(product)}
                 >
                   <img
-                    src={product.image || 'http://localhost:8000/media/default-placeholder.png'}
+                    src={getImageUrl(product.image)}
                     alt={product.name || 'Product Image'}
                     className="w-full h-48 object-cover mb-4 rounded-lg"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                    }}
                   />
                   <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
                   <p className="font-bold text-lg mt-2">${product.price}/day</p>
@@ -82,9 +96,13 @@ const Home = () => {
             </button>
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <img
-              src={activeProduct.image || 'http://localhost:8000/media/default-placeholder.png'}
+              src={getImageUrl(activeProduct.image)}
               alt={activeProduct.name || 'Product Image'}
               className="w-full h-auto object-contain mb-4 rounded-lg"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `${API_BASE}/media/default-placeholder.png`;
+              }}
             />
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
