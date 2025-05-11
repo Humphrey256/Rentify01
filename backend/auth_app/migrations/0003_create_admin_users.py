@@ -47,9 +47,9 @@ def reverse_migration(apps, schema_editor):
     User.objects.filter(username__in=['admin1', 'admin2', 'admin3']).delete()
 
 class Migration(migrations.Migration):
-    # Change this to reference the initial migration which definitely exists
+    # Update this to depend on the 0002 migration that exists on the server
     dependencies = [
-        ('auth_app', '0001_initial'),  # This should exist in all environments
+        ('auth_app', '0002_alter_user_email_alter_user_role_alter_user_username'),
     ]
 
     operations = [
