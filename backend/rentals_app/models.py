@@ -8,5 +8,12 @@ class Rental(models.Model):
     is_available = models.BooleanField(default=True)  # Renamed 'available' to 'is_available' for consistency
     image = models.ImageField(upload_to='rentals/')  # Ensure the image is uploaded to the 'rentals/' directory
 
+    # Add this new property method
+    @property
+    def image_url(self):
+        if self.image and hasattr(self.image, 'url'):
+            return self.image.url
+        return f'/static/{self.image}'
+    
     def __str__(self):
         return self.name
