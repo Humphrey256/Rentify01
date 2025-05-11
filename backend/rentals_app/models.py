@@ -6,12 +6,12 @@ class Rental(models.Model):
     details = models.TextField()
     price = models.DecimalField(decimal_places=2, max_digits=10)
     is_available = models.BooleanField(default=True)
-    image = models.ImageField(upload_to='rentals/', blank=True, null=True)  # Use ImageField for media
+    image = models.ImageField(upload_to='rentals/', blank=True, null=True)
 
     @property
     def image_url(self):
         if self.image:
-            return self.image.url  # This will be /media/rentals/filename.jpg
+            return self.image.url
         return '/static/products/default-placeholder.png'
 
     def __str__(self):

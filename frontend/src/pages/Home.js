@@ -7,11 +7,7 @@ const Home = () => {
   const [activeProduct, setActiveProduct] = useState(null);
   const navigate = useNavigate();
 
-  // Get the API base URL for images
-  const API_BASE = axiosInstance.defaults.baseURL;
-
   useEffect(() => {
-    // Fetch products from API
     const fetchProducts = async () => {
       try {
         const response = await axiosInstance.get('/api/rentals/');
@@ -23,17 +19,17 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Helper function to get proper image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) {
-      return `${API_BASE}/media/default-placeholder.png`;
+  // Helper function to get the correct media image URL
+  const getImageUrl = (image) => {
+    if (!image) {
+      return '/media/default-placeholder.png';
     }
-    // If image path is already a full URL, use it directly
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
+    // If image is already a full URL, use it
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return image;
     }
-    // Otherwise, prepend the API base URL
-    return `${API_BASE}${imagePath}`;
+    // Otherwise, serve from /media/rentals/
+    return `/media/rentals/${image}`;
   };
 
   return (
@@ -69,7 +65,7 @@ const Home = () => {
                     className="w-full h-48 object-cover mb-4 rounded-lg"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                      e.target.src = '/media/default-placeholder.png';
                     }}
                   />
                   <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
@@ -101,7 +97,7 @@ const Home = () => {
               className="w-full h-auto object-contain mb-4 rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                e.target.src = '/media/default-placeholder.png';
               }}
             />
             <p className="text-gray-700">{activeProduct.details}</p>
