@@ -34,7 +34,7 @@ media/
 
 # Static files
 staticfiles/
-static/
+#static/
 
 # Local environment settings
 .env.local
