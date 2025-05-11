@@ -113,9 +113,9 @@ def reverse_migration(apps, schema_editor):
     ]).delete()
 
 class Migration(migrations.Migration):
-    # Make sure this depends on your latest migration in rentals_app
+    # Change this to depend on the rename migration
     dependencies = [
-        ('rentals_app', '0001_initial'),  # Update if you have a different migration number
+        ('rentals_app', '0002_rename_available_rental_is_available'),  # Updated dependency
     ]
 
     operations = [
