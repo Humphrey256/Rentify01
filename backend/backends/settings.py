@@ -140,12 +140,8 @@ if not DEBUG:
     # Configure WhiteNoise for static files
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
-    # Ensure media files are properly served
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    
-    # Add this setting to allow serving files in production
-    FILE_UPLOAD_PERMISSIONS = 0o644
+    # Configure WhiteNoise to serve media files in production
+    WHITENOISE_ROOT = MEDIA_ROOT
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

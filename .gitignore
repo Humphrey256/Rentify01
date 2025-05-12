@@ -24,10 +24,11 @@ __pycache__/
 *.env
 .env
 *.pot
-*.pyc
 __pycache__/
 db.sqlite3
-media/
+
+# DO NOT exclude media directory - we want to include our images
+# media/
 
 # Django migrations
 */migrations/*
