@@ -24,81 +24,12 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Helper function to get proper image URL with better error handling
+  // Helper function to get proper image URL (copied from Products.js)
   const getImageUrlFromPath = (urlPath) => {
-    // Generate unique colored placeholder based on product name
-    const getColoredPlaceholder = (productName = '') => {
-      const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const hue = hash % 360;
-      const color = `hsl(${hue}, 70%, 80%)`;
-      const textColor = `hsl(${hue}, 70%, 30%)`;
-      const firstLetter = productName.charAt(0).toUpperCase() || '?';
-
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-        <rect width="200" height="200" fill="${color}"/>
-        <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
-      </svg>`;
-
-      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-    };
-
-    if (!urlPath) {
-      return getColoredPlaceholder("Product");
-    }
+    if (!urlPath) return '';
 
     try {
-      // Check if we're in production (on Render.com)
-      const isProduction = window.location.hostname.includes('onrender.com');
-
-      // For production, try direct GitHub image URLs
-      if (isProduction) {
-        const imageMap = {
-          "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
-          "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
-          "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
-          "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
-          "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
-          "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
-          "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
-          "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
-          "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
-          "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
-        };
-        
-        // Extract filename regardless of path format
-        let filename = urlPath.split('/').pop();
-        
-        // Check if we have a direct map for this image
-        if (filename && imageMap[filename]) {
-          console.log(`Using direct image URL for ${filename}`);
-          return imageMap[filename];
-        }
-        
-        // Try common variations of filename
-        const variations = [
-          filename,
-          filename.replace(/_/g, ' '),
-          filename.replace(/ /g, '_'),
-          filename.toLowerCase(),
-        ];
-        
-        for (const variant of variations) {
-          if (imageMap[variant]) {
-            console.log(`Found image match for ${variant}`);
-            return imageMap[variant];
-          }
-        }
-        
-        // If no direct match found, use colored placeholder
-        const productName = filename
-          .replace(/\.[^/.]+$/, "") 
-          .replace(/[_-]/g, " ")
-          .replace(/\b\w/g, l => l.toUpperCase());
-            
-        return getColoredPlaceholder(productName);
-      }
-
-      // In development, try to use actual images
+      // If it's already a full URL with the correct path and working format, use it directly
       if (urlPath.includes('/media/rentals/') &&
         (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
         return urlPath;
@@ -117,21 +48,20 @@ const Home = () => {
       // IMPORTANT: Replace spaces with underscores to match server filenames
       filename = filename.replace(/\s+/g, '_');
 
-      // Map specific problematic filenames to known good ones
-      const filenameMap = {
-        "electric.jpg": "electric_driller.jpg",
-        "vitz.jpg": "range_rover_spot.jpg", // Fallback to another image since vitz isn't available
-      };
-
-      if (filenameMap[filename]) {
-        filename = filenameMap[filename];
-      }
-
+      // Build the correct URL with consistent path
       return `${API_BASE}/media/rentals/${filename}`;
     } catch (error) {
       console.error('Error processing image URL:', error);
-      return getColoredPlaceholder("Product");
+      return '';
     }
+  };
+
+  // Add this function to handle image errors (copied from Products.js)
+  const handleImageError = (e, productName) => {
+    console.log(`❌ Image error for ${productName}: ${e.target.src}`);
+    // Set a fallback image
+    e.target.src = 'https://via.placeholder.com/600x400?text=Product+Image';
+    e.target.onerror = null; // Prevent infinite loop
   };
 
   return (
@@ -166,24 +96,7 @@ const Home = () => {
                       src={getImageUrlFromPath(product.image_url || product.image)}
                       alt={product.name || 'Product Image'}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error(`❌ Image error for ${product.name}:`, e.target.src);
-                        e.target.onerror = null; // Prevent infinite loop
-
-                        // Generate a colored placeholder specific to this product
-                        const hash = product.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                        const hue = hash % 360;
-                        const color = `hsl(${hue}, 70%, 80%)`;
-                        const textColor = `hsl(${hue}, 70%, 30%)`;
-                        const firstLetter = product.name.charAt(0).toUpperCase() || '?';
-
-                        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                          <rect width="200" height="200" fill="${color}"/>
-                          <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
-                        </svg>`;
-
-                        e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-                      }}
+                      onError={(e) => handleImageError(e, product.name)}
                     />
                   </div>
                   <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
@@ -217,20 +130,7 @@ const Home = () => {
                 onError={(e) => {
                   console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
                   e.target.onerror = null; // Prevent infinite loop
-
-                  // Generate a colored placeholder specific to this product
-                  const hash = activeProduct.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                  const hue = hash % 360;
-                  const color = `hsl(${hue}, 70%, 80%)`;
-                  const textColor = `hsl(${hue}, 70%, 30%)`;
-                  const firstLetter = activeProduct.name.charAt(0).toUpperCase() || '?';
-
-                  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                    <rect width="200" height="200" fill="${color}"/>
-                    <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
-                  </svg>`;
-
-                  e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+                  e.target.style.display = 'none'; // Hide broken image
                 }}
               />
             </div>
