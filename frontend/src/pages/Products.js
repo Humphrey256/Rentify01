@@ -136,6 +136,14 @@ const Products = () => {
     }
   };
 
+  // Add this function to handle image errors
+  const handleImageError = (e, productName) => {
+    console.log(`❌ Image error for ${productName}: ${e.target.src}`);
+    // Set a fallback image
+    e.target.src = 'https://via.placeholder.com/600x400?text=Product+Image';
+    e.target.onerror = null; // Prevent infinite loop
+  };
+
   // Filter products based on user role
   const filteredProducts = products.filter((product) => {
     // For debug purposes
@@ -203,11 +211,7 @@ const Products = () => {
                   src={getImageUrlFromPath(product.image_url || product.image)}
                   alt={product.name || 'Product Image'}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error(`❌ Image error for ${product.name}:`, e.target.src);
-                    e.target.onerror = null; // Prevent infinite loop
-                    e.target.style.display = 'none';
-                  }}
+                  onError={(e) => handleImageError(e, product.name)}
                 />
               </div>
               <h2 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h2>
