@@ -57,6 +57,54 @@ const ManageProducts = () => {
     return () => clearInterval(intervalId);
   }, [user, navigate, fetchProducts]);
 
+  // Helper function to get proper image URL with better error handling
+  const getImageUrlFromPath = (urlPath) => {
+    // Built-in data URL placeholder (gray box with image icon)
+    const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Cpath d='M80 50 L120 50 L120 80 L145 65 L145 135 L55 135 L55 65 L80 80 Z' fill='%23cccccc'/%3E%3C/svg%3E";
+
+    if (!urlPath) return placeholderImage;
+
+    try {
+      // If it's already a full URL with the correct path and working format, use it directly
+      if (urlPath.includes('/media/rentals/') &&
+        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
+        return urlPath;
+      }
+
+      // Extract the filename from whatever path format we have
+      let filename = urlPath.split('/').pop();
+
+      // Handle any encoding
+      try {
+        filename = decodeURIComponent(filename);
+      } catch (e) {
+        // If decoding fails, continue with original
+      }
+
+      // IMPORTANT: Replace spaces with underscores to match server filenames
+      filename = filename.replace(/\s+/g, '_');
+
+      // Map specific problematic filenames to known good ones
+      const filenameMap = {
+        "electric.jpg": "electric_driller.jpg",
+        "vitz.jpg": "range_rover_spot.jpg", // Fallback to another image since vitz isn't available
+      };
+
+      if (filenameMap[filename]) {
+        filename = filenameMap[filename];
+      }
+
+      // Debug log to help troubleshoot path issues
+      console.debug(`Processing image: ${urlPath} → ${filename}`);
+
+      // Just return the primary variant
+      return `${API_BASE}/media/rentals/${filename}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return placeholderImage;
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
       await axiosInstance.delete(`/api/rentals/${id}/`, {
@@ -257,11 +305,18 @@ const ManageProducts = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredProducts.map((product) => (
             <div key={product.id} className="bg-white shadow-lg rounded p-4">
-              <img
-                src={product.image || `${API_BASE}/media/default-placeholder.png`}
-                alt={product.name || 'Product Image'}
-                className="w-full h-48 object-cover mb-4 rounded-lg"
-              />
+              <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <img
+                  src={getImageUrlFromPath(product.image_url || product.image)}
+                  alt={product.name || 'Product Image'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error(`❌ Image error for ${product.name}:`, e.target.src);
+                    e.target.onerror = null; // Prevent infinite loop
+                    e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                  }}
+                />
+              </div>
               <h2 className="text-lg font-semibold">{product.name}</h2>
               <p className="font-bold text-md mt-2">${product.price}/day</p>
               <p
@@ -296,11 +351,18 @@ const ManageProducts = () => {
               X
             </button>
             <h2 className="text-lg font-bold mb-4">{activeProduct.name}</h2>
-            <img
-              src={activeProduct.image || `${API_BASE}/media/default-placeholder.png`}
-              alt={activeProduct.name || 'Product Image'}
-              className="w-full h-auto object-contain mb-4 rounded-lg"
-            />
+            <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
+              <img
+                src={getImageUrlFromPath(activeProduct.image_url || activeProduct.image)}
+                alt={activeProduct.name || 'Product Image'}
+                className="w-full h-auto object-contain"
+                onError={(e) => {
+                  console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
+                  e.target.onerror = null; // Prevent infinite loop
+                  e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                }}
+              />
+            </div>
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-md mt-4">${activeProduct.price}/day</p>
           </div>

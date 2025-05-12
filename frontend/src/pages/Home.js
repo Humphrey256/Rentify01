@@ -7,11 +7,16 @@ const Home = () => {
   const [activeProduct, setActiveProduct] = useState(null);
   const navigate = useNavigate();
 
+  // Get the API base URL for images
+  const API_BASE = axiosInstance.defaults.baseURL;
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        console.log("Fetching products...");
         const response = await axiosInstance.get('/api/rentals/');
-        setProducts(response.data.slice(0, 12));
+        const productsData = response.data.slice(0, 12);
+        setProducts(productsData);
       } catch (error) {
         console.error('Error fetching products:', error);
       }
@@ -19,17 +24,56 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Helper function to get the correct media image URL
-  const getImageUrl = (image) => {
-    if (!image) {
-      return '/media/default-placeholder.png';
+  // Helper function to get proper image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      return ''; // Return empty string for missing images
     }
-    // If image is already a full URL, use it
-    if (image.startsWith('http://') || image.startsWith('https://')) {
-      return image;
+
+    // If image path is already a full URL with the correct format, use it directly
+    if (imagePath.includes('/media/rentals/') && (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
+      return imagePath;
     }
-    // Otherwise, serve from /media/rentals/
-    return `/media/rentals/${image}`;
+
+    // REMOVED problematic product?.image_url check since product isn't defined here
+
+    // Extract just the filename, regardless of path format
+    const filename = imagePath.split('/').pop();
+
+    // Always use the rentals/ folder with proper encoding for spaces
+    return `${API_BASE}/media/rentals/${encodeURIComponent(filename)}`;
+  };
+
+  // Helper function specifically for handling image_url paths
+  const getImageUrlFromPath = (urlPath) => {
+    if (!urlPath) return '';
+
+    try {
+      // If it's already a full URL with the correct path and working format, use it directly
+      if (urlPath.includes('/media/rentals/') &&
+        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
+        return urlPath;
+      }
+
+      // Extract the filename from whatever path format we have
+      let filename = urlPath.split('/').pop();
+
+      // Handle any encoding
+      try {
+        filename = decodeURIComponent(filename);
+      } catch (e) {
+        // If decoding fails, continue with original
+      }
+
+      // IMPORTANT: Replace spaces with underscores to match server filenames
+      filename = filename.replace(/\s+/g, '_');
+
+      // Build the correct URL with consistent path and properly encoded filename
+      return `${API_BASE}/media/rentals/${filename}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return '';
+    }
   };
 
   return (
@@ -59,15 +103,18 @@ const Home = () => {
                   className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative cursor-pointer"
                   onClick={() => setActiveProduct(product)}
                 >
-                  <img
-                    src={getImageUrl(product.image)}
-                    alt={product.name || 'Product Image'}
-                    className="w-full h-48 object-cover mb-4 rounded-lg"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/static/products/default-placeholder.png';
-                    }}
-                  />
+                  <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img
+                      src={getImageUrlFromPath(product.image_url || product.image)}
+                      alt={product.name || 'Product Image'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error(`❌ Image error for ${product.name}:`, e.target.src);
+                        e.target.onerror = null; // Prevent infinite loop
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
                   <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
                   <p className="font-bold text-lg mt-2">${product.price}/day</p>
                 </div>
@@ -91,15 +138,18 @@ const Home = () => {
               &times;
             </button>
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
-            <img
-              src={getImageUrl(activeProduct.image)}
-              alt={activeProduct.name || 'Product Image'}
-              className="w-full h-auto object-contain mb-4 rounded-lg"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/static/products/default-placeholder.png';
-              }}
-            />
+            <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
+              <img
+                src={getImageUrlFromPath(activeProduct.image_url || activeProduct.image)}
+                alt={activeProduct.name || 'Product Image'}
+                className="w-full h-auto object-contain"
+                onError={(e) => {
+                  console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
+                  e.target.onerror = null; // Prevent infinite loop
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
             <button

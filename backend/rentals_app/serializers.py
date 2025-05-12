@@ -9,4 +9,15 @@ class RentalSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'category', 'details', 'price', 'is_available', 'image', 'image_url']
 
     def get_image_url(self, obj):
-        return obj.image_url
+        if obj.image:
+            # Get the base file name
+            filename = str(obj.image)
+            
+            # Make sure URL starts with /media/
+            if not obj.image.url.startswith('/media/'):
+                return f'/media/{filename}'
+            
+            # Return the full URL with /media/ prefix
+            return obj.image.url
+        
+        return '/media/default-placeholder.png'

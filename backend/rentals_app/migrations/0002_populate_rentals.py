@@ -15,7 +15,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Experience the ultimate luxury and performance with this Bugatti supercar.',
             'price': Decimal('5000.00'),
             'is_available': True,
-            'image': 'bugatti.jpg'  # This should match the file in media/rentals/
+            'image': 'rentals/bugatti.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Dodge Challenger',
@@ -23,7 +23,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Classic American muscle car with powerful engine and iconic design.',
             'price': Decimal('1200.00'),
             'is_available': True,
-            'image': 'dodge_challenger.jpg'  # This should match the file in media/rentals/
+            'image': 'rentals/dodge_challenger.jpg'  # This one was correct
         },
         {
             'name': 'Electric Drill',
@@ -31,7 +31,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Professional-grade electric drill with multiple speed settings and attachments. Perfect for home improvement projects and construction work.',
             'price': Decimal('45.00'),
             'is_available': True,
-            'image': 'electric driller.jpg'
+            'image': 'rentals/electric driller.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Toyota Harrier SUV',
@@ -39,7 +39,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Reliable and comfortable Toyota Harrier SUV with spacious interior. Great for family trips and everyday driving with added convenience.',
             'price': Decimal('950.00'),
             'is_available': True,
-            'image': 'harrier.jpg'
+            'image': 'rentals/harrier.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Kia Seltos',
@@ -47,7 +47,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Modern Kia Seltos with advanced features and fuel efficiency. Compact SUV perfect for both city driving and countryside exploration.',
             'price': Decimal('750.00'),
             'is_available': True,
-            'image': 'kia seltos.jpg'
+            'image': 'rentals/kia seltos.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Lamborghini Supercar',
@@ -55,7 +55,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Breathtaking Lamborghini supercar with exhilarating performance and head-turning design. The ultimate driving experience for special occasions.',
             'price': Decimal('4500.00'),
             'is_available': True,
-            'image': 'lambogini.jpg'
+            'image': 'rentals/lambogini.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Lawn Mower',
@@ -63,7 +63,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'High-performance lawn mower for maintaining your garden with ease. Adjustable cutting height and efficient operation for all lawn sizes.',
             'price': Decimal('65.00'),
             'is_available': True,
-            'image': 'lawn moer.jpg'
+            'image': 'rentals/lawn moer.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Mini Power Generator',
@@ -71,7 +71,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Compact portable power generator for outdoor events, camping, or emergency backup. Fuel-efficient with multiple outlet options.',
             'price': Decimal('120.00'),
             'is_available': True,
-            'image': 'mini power generator.jpg'
+            'image': 'rentals/mini power generator.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Toyota Vitz',
@@ -79,7 +79,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Economical Toyota Vitz with great fuel efficiency and easy maneuverability. Perfect for city driving and tight parking spaces.',
             'price': Decimal('550.00'),
             'is_available': True,
-            'image': 'vitz.jpg'
+            'image': 'rentals/vitz.jpg'  # Added rentals/ prefix
         },
         {
             'name': 'Range Rover Sport',
@@ -87,7 +87,7 @@ def populate_rentals(apps, schema_editor):
             'details': 'Premium Range Rover Sport combining luxury, comfort and off-road capability. Feature-packed interior with sophisticated styling.',
             'price': Decimal('2200.00'),
             'is_available': True,
-            'image': 'range rover spot.jpg'
+            'image': 'rentals/range rover spot.jpg'  # Added rentals/ prefix
         }
     ]
     

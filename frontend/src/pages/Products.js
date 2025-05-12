@@ -43,7 +43,8 @@ const Products = () => {
         price: product.price || 0,
         category: product.category || '',
         is_available: product.is_available === undefined ? true : product.is_available,
-        image: product.image || null
+        image: product.image || null,
+        image_url: product.image_url || null
       }));
 
       console.log('Normalized products:', normalizedProducts.length);
@@ -104,16 +105,35 @@ const Products = () => {
   };
 
   // Helper function to get proper image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) {
-      return `${API_BASE}/media/default-placeholder.png`;
+  const getImageUrlFromPath = (urlPath) => {
+    if (!urlPath) return '';
+
+    try {
+      // If it's already a full URL with the correct path and working format, use it directly
+      if (urlPath.includes('/media/rentals/') &&
+        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
+        return urlPath;
+      }
+
+      // Extract the filename from whatever path format we have
+      let filename = urlPath.split('/').pop();
+
+      // Handle any encoding
+      try {
+        filename = decodeURIComponent(filename);
+      } catch (e) {
+        // If decoding fails, continue with original
+      }
+
+      // IMPORTANT: Replace spaces with underscores to match server filenames
+      filename = filename.replace(/\s+/g, '_');
+
+      // Build the correct URL with consistent path
+      return `${API_BASE}/media/rentals/${filename}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return '';
     }
-    // If image path is already a full URL, use it directly
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
-    // Otherwise, prepend the API base URL
-    return `${API_BASE}${imagePath}`;
   };
 
   // Filter products based on user role
@@ -178,11 +198,18 @@ const Products = () => {
               key={product.id}
               className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative"
             >
-              <img
-                src={getImageUrl(product.image)}
-                alt={product.name || 'Product Image'}
-                className="w-full h-48 object-cover mb-4 rounded-lg"
-              />
+              <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <img
+                  src={getImageUrlFromPath(product.image_url || product.image)}
+                  alt={product.name || 'Product Image'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error(`❌ Image error for ${product.name}:`, e.target.src);
+                    e.target.onerror = null; // Prevent infinite loop
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
               <h2 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h2>
               <p className="font-bold text-lg mt-2">${product.price}/day</p>
 
@@ -238,11 +265,18 @@ const Products = () => {
 
             {/* Product Details */}
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
-            <img
-              src={getImageUrl(activeProduct.image)}
-              alt={activeProduct.name || 'Product Image'}
-              className="w-full h-auto object-contain mb-4 rounded-lg"
-            />
+            <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
+              <img
+                src={getImageUrlFromPath(activeProduct.image_url || activeProduct.image)}
+                alt={activeProduct.name || 'Product Image'}
+                className="w-full h-auto object-contain"
+                onError={(e) => {
+                  console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
+                  e.target.onerror = null; // Prevent infinite loop
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
             <p className="text-gray-700">{activeProduct.details}</p>
             <p className="font-bold text-lg mt-4">${activeProduct.price}/day</p>
 
