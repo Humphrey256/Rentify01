@@ -50,35 +50,50 @@ const Home = () => {
       // Check if we're in production (on Render.com)
       const isProduction = window.location.hostname.includes('onrender.com');
 
-      // Try specific external image map first for production
+      // For production, try direct GitHub image URLs
       if (isProduction) {
-        // Define direct URLs for known images (matching our backend config)
         const imageMap = {
-          "bugatti.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/bugatti.jpg",
-          "lawn_moer.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/lawn_moer.jpg",
-          "lambogini.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/lambogini.jpg",
-          "dodge_challenger.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/dodge_challenger.jpg", 
-          "electric_driller.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/electric_driller.jpg",
-          "kia_seltos.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/kia_seltos.jpg",
-          "harrier.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/harrier.jpg",
-          "mini_power_generator.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/mini_power_generator.jpg",
-          "vitz.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/vitz.jpg",
-          "range_rover_spot.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/range_rover_spot.jpg"
+          "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
+          "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
+          "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
+          "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
+          "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
+          "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
+          "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
+          "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
+          "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
+          "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
         };
         
-        // Extract filename
-        const filename = urlPath.split('/').pop();
+        // Extract filename regardless of path format
+        let filename = urlPath.split('/').pop();
         
-        // If we have a direct URL for this image, use it
+        // Check if we have a direct map for this image
         if (filename && imageMap[filename]) {
+          console.log(`Using direct image URL for ${filename}`);
           return imageMap[filename];
         }
         
-        // Fall back to placeholder if no direct match
+        // Try common variations of filename
+        const variations = [
+          filename,
+          filename.replace(/_/g, ' '),
+          filename.replace(/ /g, '_'),
+          filename.toLowerCase(),
+        ];
+        
+        for (const variant of variations) {
+          if (imageMap[variant]) {
+            console.log(`Found image match for ${variant}`);
+            return imageMap[variant];
+          }
+        }
+        
+        // If no direct match found, use colored placeholder
         const productName = filename
-            .replace(/\.[^/.]+$/, "") // Remove file extension
-            .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
-            .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+          .replace(/\.[^/.]+$/, "") 
+          .replace(/[_-]/g, " ")
+          .replace(/\b\w/g, l => l.toUpperCase());
             
         return getColoredPlaceholder(productName);
       }
