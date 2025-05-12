@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from django.views.static import serve
+import os
 
 # Optional: Create a simple view for the root URL
 def home(request):
@@ -26,8 +28,11 @@ urlpatterns = [
     path('api/notifications/', include('notifications_app.urls')),  # Notifications API
     
     path('', home),  # Simple home page
+    
+    # Add this line to serve media files in both development and production
+    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
 
-# Add this at the bottom to serve media files in development
+# Add media URL only in debug mode
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

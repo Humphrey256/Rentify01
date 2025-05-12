@@ -133,7 +133,19 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Fixed MEDIA_ROOT path
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Storage settings for production
+if not DEBUG:
+    # Configure WhiteNoise for static files
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Ensure media files are properly served
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    
+    # Add this setting to allow serving files in production
+    FILE_UPLOAD_PERMISSIONS = 0o644
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
