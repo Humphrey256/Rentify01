@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../utils/api';
 
@@ -9,15 +9,6 @@ const Home = () => {
 
   // Get the API base URL for images
   const API_BASE = axiosInstance.defaults.baseURL;
-
-  // Detect if we're in production immediately on load
-  const isProduction = useMemo(() =>
-    window.location.hostname.includes('onrender.com') ||
-    window.location.hostname.includes('herokuapp.com') ||
-    !window.location.hostname.includes('localhost'),
-    []);
-
-  console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -33,42 +24,84 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Pre-generate placeholders for each product to avoid regeneration on each render
-  const productPlaceholders = useMemo(() => {
-    const placeholders = {};
-    if (products.length > 0) {
-      products.forEach(product => {
-        placeholders[product.id] = generatePlaceholder(product.name);
-      });
-    }
-    return placeholders;
-  }, [products]);
+  // Helper function to get proper image URL with better error handling
+  const getImageUrlFromPath = (urlPath) => {
+    // Generate unique colored placeholder based on product name
+    const getColoredPlaceholder = (productName = '') => {
+      const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hue = hash % 360;
+      const color = `hsl(${hue}, 70%, 80%)`;
+      const textColor = `hsl(${hue}, 70%, 30%)`;
+      const firstLetter = productName.charAt(0).toUpperCase() || '?';
 
-  // Generate a colored SVG placeholder based on product name
-  function generatePlaceholder(name) {
-    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue = hash % 360;
-    const color = `hsl(${hue}, 70%, 80%)`;
-    const textColor = `hsl(${hue}, 70%, 30%)`;
-    const firstLetter = name.charAt(0).toUpperCase() || '?';
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="${color}"/>
+        <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+      </svg>`;
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-      <rect width="200" height="200" fill="${color}"/>
-      <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
-    </svg>`;
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    };
 
-    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-  }
-
-  // Helper function to get image source
-  const getImageSource = (product) => {
-    // In production, always use placeholders (no HTTP requests for images)
-    if (isProduction) {
-      return productPlaceholders[product.id] || generatePlaceholder(product.name);
+    if (!urlPath) {
+      return getColoredPlaceholder("Product");
     }
 
-    // In development, try to load actual images
-    return product.image_url || product.image || generatePlaceholder(product.name);
+    try {
+      // Check if we're in production (on Render.com)
+      const isProduction = window.location.hostname.includes('onrender.com');
+
+      // In production, return colored SVG placeholders instead of trying to load images
+      // This is because Render.com free tier doesn't persist uploaded media files
+      if (isProduction) {
+        // Extract product name from path if possible
+        const filename = urlPath.split('/').pop();
+        let productName = "Product";
+
+        // Try to extract a human-readable name from the filename
+        if (filename) {
+          productName = filename
+            .replace(/\.[^/.]+$/, "") // Remove file extension
+            .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
+            .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+        }
+
+        return getColoredPlaceholder(productName);
+      }
+
+      // In development, try to use actual images
+      if (urlPath.includes('/media/rentals/') &&
+        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
+        return urlPath;
+      }
+
+      // Extract the filename from whatever path format we have
+      let filename = urlPath.split('/').pop();
+
+      // Handle any encoding
+      try {
+        filename = decodeURIComponent(filename);
+      } catch (e) {
+        // If decoding fails, continue with original
+      }
+
+      // IMPORTANT: Replace spaces with underscores to match server filenames
+      filename = filename.replace(/\s+/g, '_');
+
+      // Map specific problematic filenames to known good ones
+      const filenameMap = {
+        "electric.jpg": "electric_driller.jpg",
+        "vitz.jpg": "range_rover_spot.jpg", // Fallback to another image since vitz isn't available
+      };
+
+      if (filenameMap[filename]) {
+        filename = filenameMap[filename];
+      }
+
+      return `${API_BASE}/media/rentals/${filename}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return getColoredPlaceholder("Product");
+    }
   };
 
   return (
@@ -100,14 +133,26 @@ const Home = () => {
                 >
                   <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                     <img
-                      src={getImageSource(product)}
+                      src={getImageUrlFromPath(product.image_url || product.image)}
                       alt={product.name || 'Product Image'}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // Only happens in development since production uses SVG placeholders directly
                         console.error(`❌ Image error for ${product.name}:`, e.target.src);
                         e.target.onerror = null; // Prevent infinite loop
-                        e.target.src = productPlaceholders[product.id] || generatePlaceholder(product.name);
+
+                        // Generate a colored placeholder specific to this product
+                        const hash = product.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                        const hue = hash % 360;
+                        const color = `hsl(${hue}, 70%, 80%)`;
+                        const textColor = `hsl(${hue}, 70%, 30%)`;
+                        const firstLetter = product.name.charAt(0).toUpperCase() || '?';
+
+                        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                          <rect width="200" height="200" fill="${color}"/>
+                          <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                        </svg>`;
+
+                        e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
                       }}
                     />
                   </div>
@@ -136,14 +181,26 @@ const Home = () => {
             <h2 className="text-2xl font-bold mb-4">{activeProduct.name}</h2>
             <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
               <img
-                src={productPlaceholders[activeProduct.id] || generatePlaceholder(activeProduct.name)}
+                src={getImageUrlFromPath(activeProduct.image_url || activeProduct.image)}
                 alt={activeProduct.name || 'Product Image'}
                 className="w-full h-auto object-contain"
                 onError={(e) => {
-                  // This should never happen now, but just in case
                   console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
-                  e.target.onerror = null;
-                  e.target.src = generatePlaceholder(activeProduct.name);
+                  e.target.onerror = null; // Prevent infinite loop
+
+                  // Generate a colored placeholder specific to this product
+                  const hash = activeProduct.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                  const hue = hash % 360;
+                  const color = `hsl(${hue}, 70%, 80%)`;
+                  const textColor = `hsl(${hue}, 70%, 30%)`;
+                  const firstLetter = activeProduct.name.charAt(0).toUpperCase() || '?';
+
+                  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <rect width="200" height="200" fill="${color}"/>
+                    <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                  </svg>`;
+
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
                 }}
               />
             </div>
