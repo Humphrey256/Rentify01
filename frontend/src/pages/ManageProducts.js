@@ -60,23 +60,28 @@ const ManageProducts = () => {
   // Helper function to get proper image URL with better error handling
   const getImageUrlFromPath = (urlPath) => {
     // Generate unique colored placeholder based on product name
-    const getColoredPlaceholder = (productName = '') => {
+    const getColoredPlaceholder = (productName = '', showMessage = false) => {
       const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const hue = hash % 360;
       const color = `hsl(${hue}, 70%, 80%)`;
       const textColor = `hsl(${hue}, 70%, 30%)`;
       const firstLetter = productName.charAt(0).toUpperCase() || '?';
 
+      // Add error message to the SVG if requested
+      const errorText = showMessage ? 
+        `<text x="100" y="160" font-family="Arial" font-size="14" fill="${textColor}" text-anchor="middle">Image not found</text>` : '';
+
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
         <rect width="200" height="200" fill="${color}"/>
         <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+        ${errorText}
       </svg>`;
 
       return `data:image/svg+xml,${encodeURIComponent(svg)}`;
     };
 
     if (!urlPath) {
-      return getColoredPlaceholder("Product");
+      return getColoredPlaceholder("Product", true);
     }
 
     try {
@@ -153,7 +158,7 @@ const ManageProducts = () => {
       return `${API_BASE}/media/rentals/${filename}`;
     } catch (error) {
       console.error('Error processing image URL:', error);
-      return getColoredPlaceholder("Product");
+      return getColoredPlaceholder("Product", true);
     }
   };
 
@@ -366,7 +371,7 @@ const ManageProducts = () => {
                     console.error(`❌ Image error for ${product.name}:`, e.target.src);
                     e.target.onerror = null; // Prevent infinite loop
 
-                    // Generate a colored placeholder specific to this product
+                    // Generate a colored placeholder with error message
                     const hash = product.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                     const hue = hash % 360;
                     const color = `hsl(${hue}, 70%, 80%)`;
@@ -376,9 +381,13 @@ const ManageProducts = () => {
                     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                       <rect width="200" height="200" fill="${color}"/>
                       <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                      <text x="100" y="160" font-family="Arial" font-size="14" fill="${textColor}" text-anchor="middle">Image not found</text>
                     </svg>`;
 
                     e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+                    
+                    // Add a toast notification
+                    toast.warning(`Image for ${product.name} not found`);
                   }}
                 />
               </div>
@@ -425,7 +434,7 @@ const ManageProducts = () => {
                   console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
                   e.target.onerror = null; // Prevent infinite loop
                   
-                  // Use the same consistent error handling as in the product list
+                  // Generate a colored placeholder with error message
                   const hash = activeProduct.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                   const hue = hash % 360;
                   const color = `hsl(${hue}, 70%, 80%)`;
@@ -435,9 +444,13 @@ const ManageProducts = () => {
                   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                     <rect width="200" height="200" fill="${color}"/>
                     <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                    <text x="100" y="160" font-family="Arial" font-size="14" fill="${textColor}" text-anchor="middle">Image not found</text>
                   </svg>`;
 
                   e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+                  
+                  // Add a toast notification
+                  toast.warning(`Image for ${activeProduct.name} not found`);
                 }}
               />
             </div>
