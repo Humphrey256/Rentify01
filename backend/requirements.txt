@@ -3,11 +3,12 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 python-dotenv==1.0.0
 requests==2.31.0
-Pillow==10.0.0
+Pillow==10.4.0  # Successfully installed and compatible with Python 3.13
 django-cors-headers==3.14.0
 django-oauth-toolkit==2.3.0
 drf-social-oauth2==1.2.0
+social-auth-app-django==5.2.0  # Added for social authentication
 psycopg2-binary==2.9.9  # PostgreSQL adapter
 dj-database-url==2.1.0  # For database URL parsing
 gunicorn==21.2.0  # Production WSGI HTTP server
-whitenoise==6.6.0  # ✅ Added to serve static files in production
+whitenoise==6.6.0  # Added to serve static files in production
