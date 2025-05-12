@@ -50,21 +50,36 @@ const Home = () => {
       // Check if we're in production (on Render.com)
       const isProduction = window.location.hostname.includes('onrender.com');
 
-      // In production, return colored SVG placeholders instead of trying to load images
-      // This is because Render.com free tier doesn't persist uploaded media files
+      // Try specific external image map first for production
       if (isProduction) {
-        // Extract product name from path if possible
+        // Define direct URLs for known images (matching our backend config)
+        const imageMap = {
+          "bugatti.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/bugatti.jpg",
+          "lawn_moer.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/lawn_moer.jpg",
+          "lambogini.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/lambogini.jpg",
+          "dodge_challenger.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/dodge_challenger.jpg", 
+          "electric_driller.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/electric_driller.jpg",
+          "kia_seltos.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/kia_seltos.jpg",
+          "harrier.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/harrier.jpg",
+          "mini_power_generator.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/mini_power_generator.jpg",
+          "vitz.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/vitz.jpg",
+          "range_rover_spot.jpg": "https://raw.githubusercontent.com/hanningtonem/rentify-images/main/range_rover_spot.jpg"
+        };
+        
+        // Extract filename
         const filename = urlPath.split('/').pop();
-        let productName = "Product";
-
-        // Try to extract a human-readable name from the filename
-        if (filename) {
-          productName = filename
+        
+        // If we have a direct URL for this image, use it
+        if (filename && imageMap[filename]) {
+          return imageMap[filename];
+        }
+        
+        // Fall back to placeholder if no direct match
+        const productName = filename
             .replace(/\.[^/.]+$/, "") // Remove file extension
             .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
             .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
-        }
-
+            
         return getColoredPlaceholder(productName);
       }
 
