@@ -129,8 +129,9 @@ const Dashboard = ({ isSidebarCollapsed }) => {
 
   return (
     <div
-      className={`flex-1 min-h-screen bg-gray-100 p-4 mt-16 transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-24'
-        }`}
+      className={`flex-1 min-h-screen w-full bg-gray-100 p-4 mt-16 transition-all duration-300 ml-0 ${
+        isSidebarCollapsed ? 'sm:ml-16' : 'sm:ml-24'
+      }`}
     >
       <h1 className="text-3xl font-bold mb-6 text-center md:text-left">Dashboard</h1>
       {loading ? (
@@ -327,7 +328,7 @@ const Dashboard = ({ isSidebarCollapsed }) => {
           </div>
 
           {/* Instagram Widget */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             {/* Other dashboard widgets */}
 
             {/* Instagram widget - takes 1/3 of the row on desktop */}
