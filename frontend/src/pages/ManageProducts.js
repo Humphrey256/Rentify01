@@ -83,21 +83,36 @@ const ManageProducts = () => {
       // Check if we're in production (on Render.com)
       const isProduction = window.location.hostname.includes('onrender.com');
 
-      // In production, return colored SVG placeholders instead of trying to load images
-      // This is because Render.com free tier doesn't persist uploaded media files
+      // For production, use direct image URLs
       if (isProduction) {
-        // Extract product name from path if possible
+        // Define direct URLs for known images
+        const imageMap = {
+          "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
+          "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
+          "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
+          "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
+          "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
+          "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
+          "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
+          "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
+          "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
+          "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
+        };
+        
+        // Extract filename from path
         const filename = urlPath.split('/').pop();
-        let productName = "Product";
-
-        // Try to extract a human-readable name from the filename
-        if (filename) {
-          productName = filename
-            .replace(/\.[^/.]+$/, "") // Remove file extension
-            .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
-            .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+        
+        // If we have a direct URL for this image, use it
+        if (filename && imageMap[filename]) {
+          return imageMap[filename];
         }
-
+        
+        // If no direct match found, continue with the placeholder
+        const productName = filename
+          .replace(/\.[^/.]+$/, "") // Remove file extension
+          .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
+          .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+            
         return getColoredPlaceholder(productName);
       }
 
@@ -409,7 +424,20 @@ const ManageProducts = () => {
                 onError={(e) => {
                   console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
                   e.target.onerror = null; // Prevent infinite loop
-                  e.target.src = `${API_BASE}/media/default-placeholder.png`;
+                  
+                  // Use the same consistent error handling as in the product list
+                  const hash = activeProduct.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                  const hue = hash % 360;
+                  const color = `hsl(${hue}, 70%, 80%)`;
+                  const textColor = `hsl(${hue}, 70%, 30%)`;
+                  const firstLetter = activeProduct.name.charAt(0).toUpperCase() || '?';
+
+                  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <rect width="200" height="200" fill="${color}"/>
+                    <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                  </svg>`;
+
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
                 }}
               />
             </div>
