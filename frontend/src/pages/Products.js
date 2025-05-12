@@ -109,6 +109,34 @@ const Products = () => {
     if (!urlPath) return '';
 
     try {
+      // Check if we're in production (on Render.com)
+      const isProduction = window.location.hostname.includes('onrender.com');
+
+      // For production, try direct image URLs
+      if (isProduction) {
+        // Define direct URLs for known images
+        const imageMap = {
+          "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
+          "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
+          "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
+          "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
+          "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
+          "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
+          "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
+          "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
+          "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
+          "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
+        };
+        
+        // Extract filename from path
+        const filename = urlPath.split('/').pop();
+        
+        // If we have a direct URL for this image, use it
+        if (filename && imageMap[filename]) {
+          return imageMap[filename];
+        }
+      }
+
       // If it's already a full URL with the correct path and working format, use it directly
       if (urlPath.includes('/media/rentals/') &&
         (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
