@@ -59,12 +59,49 @@ const ManageProducts = () => {
 
   // Helper function to get proper image URL with better error handling
   const getImageUrlFromPath = (urlPath) => {
-    // Built-in data URL placeholder (gray box with image icon)
-    const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Cpath d='M80 50 L120 50 L120 80 L145 65 L145 135 L55 135 L55 65 L80 80 Z' fill='%23cccccc'/%3E%3C/svg%3E";
+    // Generate unique colored placeholder based on product name
+    const getColoredPlaceholder = (productName = '') => {
+      const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hue = hash % 360;
+      const color = `hsl(${hue}, 70%, 80%)`;
+      const textColor = `hsl(${hue}, 70%, 30%)`;
+      const firstLetter = productName.charAt(0).toUpperCase() || '?';
 
-    if (!urlPath) return placeholderImage;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="${color}"/>
+        <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+      </svg>`;
+
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    };
+
+    if (!urlPath) {
+      return getColoredPlaceholder("Product");
+    }
 
     try {
+      // Check if we're in production (on Render.com)
+      const isProduction = window.location.hostname.includes('onrender.com');
+
+      // In production, return colored SVG placeholders instead of trying to load images
+      // This is because Render.com free tier doesn't persist uploaded media files
+      if (isProduction) {
+        // Extract product name from path if possible
+        const filename = urlPath.split('/').pop();
+        let productName = "Product";
+
+        // Try to extract a human-readable name from the filename
+        if (filename) {
+          productName = filename
+            .replace(/\.[^/.]+$/, "") // Remove file extension
+            .replace(/[_-]/g, " ")    // Replace underscores and dashes with spaces
+            .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+        }
+
+        return getColoredPlaceholder(productName);
+      }
+
+      // In development, try to use actual images
       // If it's already a full URL with the correct path and working format, use it directly
       if (urlPath.includes('/media/rentals/') &&
         (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
@@ -101,7 +138,7 @@ const ManageProducts = () => {
       return `${API_BASE}/media/rentals/${filename}`;
     } catch (error) {
       console.error('Error processing image URL:', error);
-      return placeholderImage;
+      return getColoredPlaceholder("Product");
     }
   };
 
@@ -313,7 +350,20 @@ const ManageProducts = () => {
                   onError={(e) => {
                     console.error(`❌ Image error for ${product.name}:`, e.target.src);
                     e.target.onerror = null; // Prevent infinite loop
-                    e.target.src = `${API_BASE}/media/default-placeholder.png`;
+
+                    // Generate a colored placeholder specific to this product
+                    const hash = product.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const hue = hash % 360;
+                    const color = `hsl(${hue}, 70%, 80%)`;
+                    const textColor = `hsl(${hue}, 70%, 30%)`;
+                    const firstLetter = product.name.charAt(0).toUpperCase() || '?';
+
+                    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                      <rect width="200" height="200" fill="${color}"/>
+                      <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                    </svg>`;
+
+                    e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
                   }}
                 />
               </div>
