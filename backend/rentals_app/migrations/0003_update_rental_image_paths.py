@@ -35,7 +35,14 @@ def normalize_image_paths(apps, schema_editor):
             continue
             
         # Extract just the filename
-        filename = os.path.basename(rental.image.name)
+        # Handle both string and FileField types
+        if hasattr(rental.image, 'name'):
+            filename = os.path.basename(rental.image.name)
+            current_path = rental.image.name
+        else:
+            # If image is just a string path
+            filename = os.path.basename(str(rental.image))
+            current_path = str(rental.image)
         
         # If filename is in our expected images, ensure it's in rentals/
         if filename in expected_images:
@@ -43,9 +50,9 @@ def normalize_image_paths(apps, schema_editor):
             new_path = f'rentals/{filename}'
             
             # Only update if different
-            if rental.image.name != new_path:
-                print(f"Updating image path for {rental.name}: {rental.image.name} -> {new_path}")
-                rental.image.name = new_path
+            if current_path != new_path:
+                print(f"Updating image path for {rental.name}: {current_path} -> {new_path}")
+                rental.image = new_path
                 rental.save()
 
 def reverse_func(apps, schema_editor):

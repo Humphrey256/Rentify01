@@ -13,6 +13,20 @@ const API_BASE_URL = isProduction
 
 console.log('Using API base URL:', API_BASE_URL);
 
+// Direct image URLs for fallback
+const IMAGE_MAP = {
+  "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
+  "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
+  "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
+  "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
+  "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
+  "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
+  "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
+  "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
+  "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
+  "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
+};
+
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     timeout: 60000, // Set timeout to 60 seconds
@@ -50,15 +64,13 @@ export function getImageUrl(imagePath) {
     }
     
     // Check if we're in production
-    const isProduction = !window.location.hostname.includes('localhost');
-    
     if (isProduction) {
       // In production, prefer direct image URLs from our map
       // Return a reasonable fallback based on file extension
       return IMAGE_MAP['bugatti.jpg']; // Default fallback
     } else {
       // In development, use the API
-      return `${API_URL}/media/rentals/${filename}`;
+      return `${API_BASE_URL}/media/rentals/${filename}`;
     }
   } catch (error) {
     console.error('Error getting image URL:', error);
