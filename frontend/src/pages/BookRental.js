@@ -15,6 +15,44 @@ const BookRental = () => {
     // Get the API base URL for images
     const API_BASE = axiosInstance.defaults.baseURL;
 
+    // Helper function for image handling (like Home.js)
+    const getImageUrlFromPath = (urlPath) => {
+        if (!urlPath) return '';
+        try {
+            if (
+                urlPath.includes('/media/rentals/') &&
+                (urlPath.startsWith('http://') || urlPath.startsWith('https://'))
+            ) {
+                return urlPath;
+            }
+            let filename = urlPath.split('/').pop();
+            try {
+                filename = decodeURIComponent(filename);
+            } catch (e) {}
+            filename = filename.replace(/\s+/g, '_');
+            return `${API_BASE}/media/rentals/${filename}`;
+        } catch (error) {
+            console.error('Error processing image URL:', error);
+            return '';
+        }
+    };
+
+    // Image error handler (like Home.js)
+    const handleImageError = (e, productName) => {
+        console.log(`❌ Image error for ${productName}: ${e.target.src}`);
+        e.target.onerror = null;
+        const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const hue = hash % 360;
+        const color = `hsl(${hue}, 70%, 80%)`;
+        const textColor = `hsl(${hue}, 70%, 30%)`;
+        const firstLetter = productName.charAt(0).toUpperCase() || '?';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+          <rect width="200" height="200" fill="${color}"/>
+          <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+        </svg>`;
+        e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    };
+
     useEffect(() => {
         // Redirect to login if user is not authenticated
         if (!user) {
@@ -291,9 +329,10 @@ const BookRental = () => {
                         </div>
                         {rental.image && (
                             <img
-                                src={rental.image}
+                                src={getImageUrlFromPath(rental.image_url || rental.image)}
                                 alt={rental.name}
                                 className="w-full h-48 object-cover rounded-lg mb-4"
+                                onError={(e) => handleImageError(e, rental.name)}
                             />
                         )}
                         <p className="text-gray-600 mb-2">{rental.description}</p>
