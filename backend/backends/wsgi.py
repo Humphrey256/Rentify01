@@ -25,3 +25,17 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     raise
+
+# Add WhiteNoise support
+from whitenoise import WhiteNoise
+from django.conf import settings
+
+# Wrap the Django WSGI application
+application = WhiteNoise(
+    application,
+    root=settings.STATIC_ROOT,            # existing static files
+    prefix='static/'                       # prefix for static files
+)
+
+# Also serve media files under /media/
+application.add_files(settings.MEDIA_ROOT, prefix='media/')

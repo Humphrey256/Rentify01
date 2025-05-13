@@ -59,6 +59,33 @@ def register(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def register_user(request):
+    """
+    Register a new user
+    """
+    print(f"Registration data received: {request.data}")
+    
+    serializer = UserSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({
+            "success": True,
+            "message": "User registered successfully",
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email
+        }, status=status.HTTP_201_CREATED)
+    
+    # More detailed error response
+    print(f"Registration validation errors: {serializer.errors}")
+    return Response({
+        "success": False,
+        "errors": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
     username = request.data.get('username')
     password = request.data.get('password')

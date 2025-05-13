@@ -241,11 +241,12 @@ const ManageProducts = () => {
   });
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    // Make loading screen take full width on small screens
+    return <div className="flex justify-center items-center h-screen w-full ml-0 md:ml-64">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 relative overflow-y-auto">
+    <div className="min-h-screen w-full bg-gray-100 p-4 mt-16 ml-0 md:ml-64 lg:ml-72 relative overflow-y-auto">
       <h1 className="text-xl font-bold mb-4 text-center sm:text-left">Manage Products</h1>
       <div className="flex justify-between items-center mb-4">
         <button

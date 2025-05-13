@@ -59,7 +59,17 @@ const Register = () => {
 
     try {
       console.log('Sending registration data:', formData);
-      await axiosInstance.post('/auth/register/', formData);
+      
+      // Make sure to include verification that the backend endpoint is expecting
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
+      };
+      
+      const response = await axiosInstance.post('/auth/register/', userData);
+      console.log('Registration response:', response);
       toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {
@@ -70,6 +80,7 @@ const Register = () => {
         if (error.response.data) {
           // Django REST Framework often returns errors in a specific format
           const apiErrors = error.response.data;
+          console.log('API error details:', apiErrors);
 
           if (apiErrors.username) {
             toast.error(`Username: ${apiErrors.username[0]}`);
@@ -86,10 +97,13 @@ const Register = () => {
           if (apiErrors.detail) {
             toast.error(apiErrors.detail);
           }
+          if (apiErrors.error) {
+            toast.error(apiErrors.error);
+          }
 
-          // If there are specific errors, don't show the generic one
+          // If there are no specific errors, show the generic one
           if (!apiErrors.username && !apiErrors.email && !apiErrors.password &&
-            !apiErrors.non_field_errors && !apiErrors.detail) {
+            !apiErrors.non_field_errors && !apiErrors.detail && !apiErrors.error) {
             setError('Registration failed. Please check your information and try again.');
           }
         } else {

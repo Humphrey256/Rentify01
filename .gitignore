@@ -34,7 +34,7 @@ db.sqlite3
 */migrations/*
 
 # Static files
-staticfiles/
+#staticfiles/
 #static/
 
 # Local environment settings
@@ -144,12 +144,12 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
+#.env
 .venv
-env/
+#env/
 venv/
-ENV/
-env.bak/
+#ENV/
+#env.bak/
 venv.bak/
 
 # Spyder project settings
