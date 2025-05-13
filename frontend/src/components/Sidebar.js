@@ -101,7 +101,17 @@ const Sidebar = () => {
   }, [user]);
 
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    
+    // Save state to localStorage for persistence
+    localStorage.setItem('sidebarCollapsed', newState);
+    
+    // Dispatch custom event for other components to listen for
+    const event = new CustomEvent('sidebar-toggled', { 
+      detail: { isCollapsed: newState } 
+    });
+    window.dispatchEvent(event);
   };
 
   const toggleMobileMenu = () => {

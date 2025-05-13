@@ -215,11 +215,10 @@ const Notifications = () => {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-gray-100 pt-16 lg:pt-6 px-3 lg:px-6 pb-10 transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-56'
-        }`}
-    >
-      <div className="bg-white rounded-lg shadow-xl p-4 lg:p-6 max-w-4xl mx-auto lg:mx-0">
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-0 md:ml-16 lg:ml-30 relative z-0">
+      <h1 className="text-2xl lg:text-3xl font-bold mb-6 text-center">Notifications</h1>
+      
+      <div className="bg-white rounded-lg shadow-lg p-4 lg:p-6 max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold">Notifications</h1>
@@ -280,6 +279,12 @@ const Notifications = () => {
           </div>
         )}
       </div>
+      
+      <ToastContainer 
+        position="top-right" 
+        autoClose={5000} 
+        style={{ zIndex: 99999, marginTop: '4rem' }}
+      />
     </div>
   );
 };
