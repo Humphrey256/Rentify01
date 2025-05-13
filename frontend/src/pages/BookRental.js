@@ -384,10 +384,9 @@ const BookRental = () => {
                             value={currency}
                             onChange={handleInputChange}
                             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled
                         >
                             <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
-                            <option value="NGN">NGN</option>
                         </select>
                     </div>
 
