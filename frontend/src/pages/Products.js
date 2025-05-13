@@ -104,42 +104,16 @@ const Products = () => {
     }
   };
 
-  // Helper function to get proper image URL
+  // Helper function to get proper image URL (copied from Home.js)
   const getImageUrlFromPath = (urlPath) => {
     if (!urlPath) return '';
 
     try {
-      // Check if we're in production (on Render.com)
-      const isProduction = window.location.hostname.includes('onrender.com');
-
-      // For production, try direct image URLs
-      if (isProduction) {
-        // Define direct URLs for known images
-        const imageMap = {
-          "bugatti.jpg": "https://i.imgur.com/vYQRmHM.jpeg",
-          "lawn_moer.jpg": "https://i.imgur.com/4aJKYpT.jpeg",
-          "lambogini.jpg": "https://i.imgur.com/qLHb6fP.jpeg",
-          "dodge_challenger.jpg": "https://i.imgur.com/hpKtGlf.jpeg", 
-          "electric_driller.jpg": "https://i.imgur.com/0NZ6D9e.jpeg",
-          "kia_seltos.jpg": "https://i.imgur.com/I34HXbR.jpeg",
-          "harrier.jpg": "https://i.imgur.com/Ax8HdB0.jpeg",
-          "mini_power_generator.jpg": "https://i.imgur.com/QJzLMY6.jpeg",
-          "vitz.jpg": "https://i.imgur.com/Jh0a8v1.jpeg",
-          "range_rover_spot.jpg": "https://i.imgur.com/ql0eDSh.jpeg"
-        };
-        
-        // Extract filename from path
-        const filename = urlPath.split('/').pop();
-        
-        // If we have a direct URL for this image, use it
-        if (filename && imageMap[filename]) {
-          return imageMap[filename];
-        }
-      }
-
       // If it's already a full URL with the correct path and working format, use it directly
-      if (urlPath.includes('/media/rentals/') &&
-        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))) {
+      if (
+        urlPath.includes('/media/rentals/') &&
+        (urlPath.startsWith('http://') || urlPath.startsWith('https://'))
+      ) {
         return urlPath;
       }
 
@@ -164,12 +138,24 @@ const Products = () => {
     }
   };
 
-  // Add this function to handle image errors
+  // Add this function to handle image errors (copied from Home.js)
   const handleImageError = (e, productName) => {
     console.log(`❌ Image error for ${productName}: ${e.target.src}`);
-    // Set a fallback image
-    e.target.src = 'https://via.placeholder.com/600x400?text=Product+Image';
     e.target.onerror = null; // Prevent infinite loop
+
+    // Use colored SVG placeholder
+    const hash = productName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hue = hash % 360;
+    const color = `hsl(${hue}, 70%, 80%)`;
+    const textColor = `hsl(${hue}, 70%, 30%)`;
+    const firstLetter = productName.charAt(0).toUpperCase() || '?';
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+      <rect width="200" height="200" fill="${color}"/>
+      <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+    </svg>`;
+
+    e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   };
 
   // Filter products based on user role
@@ -202,7 +188,7 @@ const Products = () => {
   }, [products, filteredProducts]);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-2 md:ml-15 lg:ml-30 relative z-0">
+    <div className="min-h-screen bg-gray-100 p-4 mt-16 ml-0 md:ml-16 lg:ml-30 relative z-0">
       <h1 className="text-3xl font-bold mb-6 text-center">Available Products</h1>
 
       <div className="flex justify-center mb-6">
@@ -302,11 +288,7 @@ const Products = () => {
                 src={getImageUrlFromPath(activeProduct.image_url || activeProduct.image)}
                 alt={activeProduct.name || 'Product Image'}
                 className="w-full h-auto object-contain"
-                onError={(e) => {
-                  console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
-                  e.target.onerror = null; // Prevent infinite loop
-                  e.target.style.display = 'none';
-                }}
+                onError={(e) => handleImageError(e, activeProduct.name)}
               />
             </div>
             <p className="text-gray-700">{activeProduct.details}</p>
