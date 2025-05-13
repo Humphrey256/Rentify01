@@ -5,6 +5,7 @@ import axiosInstance from '../utils/api';
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [activeProduct, setActiveProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Get the API base URL for images
@@ -12,13 +13,17 @@ const Home = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
         console.log("Fetching products...");
         const response = await axiosInstance.get('/api/rentals/');
         const productsData = response.data.slice(0, 12);
+        console.log(`Successfully loaded ${productsData.length} products`);
         setProducts(productsData);
       } catch (error) {
         console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -81,30 +86,60 @@ const Home = () => {
       <section className="py-20 relative z-10">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">Available Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.length === 0 ? (
-              <p className="text-center text-lg">No products available</p>
-            ) : (
-              products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative cursor-pointer"
-                  onClick={() => setActiveProduct(product)}
-                >
-                  <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                    <img
-                      src={getImageUrlFromPath(product.image_url || product.image)}
-                      alt={product.name || 'Product Image'}
-                      className="w-full h-full object-cover"
-                      onError={(e) => handleImageError(e, product.name)}
-                    />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
-                  <p className="font-bold text-lg mt-2">${product.price}/day</p>
+          
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="bg-white shadow-lg rounded-lg p-4 animate-pulse">
+                  <div className="h-48 bg-gray-300 rounded-lg mb-4"></div>
+                  <div className="h-5 bg-gray-300 rounded w-3/4 mb-2 mx-auto"></div>
+                  <div className="h-5 bg-gray-300 rounded w-1/3 mx-auto"></div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.length === 0 ? (
+                <p className="text-center text-lg col-span-full">No products available</p>
+              ) : (
+                products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="bg-white shadow-lg rounded-lg p-4 transition-all duration-300 transform hover:scale-105 relative cursor-pointer"
+                    onClick={() => setActiveProduct(product)}
+                  >
+                    <div className="h-48 mb-4 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      <img
+                        src={getImageUrlFromPath(product.image_url || product.image)}
+                        alt={product.name || 'Product Image'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error(`❌ Image error for ${product.name}:`, e.target.src);
+                          e.target.onerror = null; // Prevent infinite loop
+                          
+                          // Use colored SVG placeholder
+                          const hash = product.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                          const hue = hash % 360;
+                          const color = `hsl(${hue}, 70%, 80%)`;
+                          const textColor = `hsl(${hue}, 70%, 30%)`;
+                          const firstLetter = product.name.charAt(0).toUpperCase() || '?';
+                          
+                          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                            <rect width="200" height="200" fill="${color}"/>
+                            <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                          </svg>`;
+                          
+                          e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+                        }}
+                      />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2 text-indigo-600 font-serif">{product.name}</h3>
+                    <p className="font-bold text-lg mt-2">${product.price}/day</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -130,7 +165,20 @@ const Home = () => {
                 onError={(e) => {
                   console.error(`❌ Modal image error for ${activeProduct.name}:`, e.target.src);
                   e.target.onerror = null; // Prevent infinite loop
-                  e.target.style.display = 'none'; // Hide broken image
+                  
+                  // Use colored SVG placeholder
+                  const hash = activeProduct.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                  const hue = hash % 360;
+                  const color = `hsl(${hue}, 70%, 80%)`;
+                  const textColor = `hsl(${hue}, 70%, 30%)`;
+                  const firstLetter = activeProduct.name.charAt(0).toUpperCase() || '?';
+                  
+                  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <rect width="200" height="200" fill="${color}"/>
+                    <text x="100" y="120" font-family="Arial" font-size="80" font-weight="bold" fill="${textColor}" text-anchor="middle">${firstLetter}</text>
+                  </svg>`;
+                  
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
                 }}
               />
             </div>

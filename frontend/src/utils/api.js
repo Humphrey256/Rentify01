@@ -31,4 +31,40 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// Utility to get image URL with fallback
+export function getImageUrl(imagePath) {
+  if (!imagePath) return '';
+  
+  try {
+    // If it's already a full URL (starts with http)
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // Extract filename from path
+    const filename = imagePath.split('/').pop();
+    
+    // If we have a direct URL for this image in our map, use it
+    if (IMAGE_MAP[filename]) {
+      return IMAGE_MAP[filename];
+    }
+    
+    // Check if we're in production
+    const isProduction = !window.location.hostname.includes('localhost');
+    
+    if (isProduction) {
+      // In production, prefer direct image URLs from our map
+      // Return a reasonable fallback based on file extension
+      return IMAGE_MAP['bugatti.jpg']; // Default fallback
+    } else {
+      // In development, use the API
+      return `${API_URL}/media/rentals/${filename}`;
+    }
+  } catch (error) {
+    console.error('Error getting image URL:', error);
+    // Return a working imgur URL as final fallback
+    return "https://i.imgur.com/vYQRmHM.jpeg";
+  }
+}
+
 export default axiosInstance;
